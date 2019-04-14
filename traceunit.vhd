@@ -57,21 +57,21 @@ begin
 
 --select hex/bcd character to display
 with char(3 downto 0) select
-	hex <= 	"000" & af 	when t_af,
-				"000" & bf 	when t_bf,
-				"000" & cf 	when t_cf,
-				a 				when t_a,
-				b 				when t_b,
-				c 				when t_c,
+	hex <= 	"000" & af 						when t_af,
+				"000" & bf 						when t_bf,
+				"000" & cf 						when t_cf,
+				a 									when t_a,
+				b 									when t_b,
+				c 									when t_c,
 				instruction(3 downto 0) 	when t_instr0,
 				instruction(7 downto 4) 	when t_instr1,
 				instruction(11 downto 8)	when t_instr2,
-				pc(3 downto 0) 	when t_pc0,
-				pc(7 downto 4) 	when t_pc1,
-				"000" & pc(8) 		when t_pc2,
+				pc(3 downto 0) 				when t_pc0,
+				pc(7 downto 4) 				when t_pc1,
+				"000" & pc(8) 					when t_pc2,
 				"0000" when others;
 
--- convert to ASCII
+-- convert 4-bit HEX to 8-bit ASCII
 over9 <= (hex(3) and hex(2)) or (hex(3) and (not hex(2)) and hex(1)); -- 101X, 11XX
 asciiOffset <= X"37" when over9 = '1' else X"30";
 muxAscii <= std_logic_vector(unsigned("0000" & hex) + unsigned(asciiOffset));
@@ -107,7 +107,7 @@ with bitSel select
 						'1' 		 when "1110",	-- additional stop or parity
 						'1' when others;			-- delay
 
--- drive high when all bits transmitted	
+-- drive high when all bits transmitted, this signal is fed as a condition to microcode	
 char_sent <= '1' when bitSel(3 downto 1) = "111" else '0'; 					
 
 -- when char goes to non-zero, char is being sent to txd, until hits last 2 bitSel values

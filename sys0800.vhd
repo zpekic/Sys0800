@@ -137,6 +137,7 @@ component tms0800 is
            kd : in  STD_LOGIC;
 			  trace_txd: out STD_LOGIC;
 			  trace_rxd: in STD_LOGIC;
+			  disableSingleStep: out STD_LOGIC;
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
 end component;
 
@@ -170,8 +171,8 @@ signal segment: std_logic_vector(7 downto 0);
 signal led_debug, led_digit8: std_logic_vector(3 downto 0);
 
 -- other
-signal clk_calc: std_logic;
-signal trace_txd: std_logic;
+signal clk_calc, clk_ss: std_logic;
+signal trace_txd, disableSs: std_logic;
 
 begin
    
@@ -221,7 +222,7 @@ begin
         clocksel => switch(6 downto 5),
         modesel => switch(7),
         singlestep => button(3),
-        clock_out => clk_calc
+        clock_out => clk_ss
     );
 
 	-- DEBOUNCE the 8 switches, 4 buttons and 4 return lines from PMOD keyboard
@@ -260,8 +261,11 @@ begin
 		kd => kd,
 		trace_txd => PMOD(3), 
 		trace_rxd => PMOD(2),
+		disableSingleStep => disableSs,
 		dbg_state => led_debug
 	);
+
+clk_calc <= clk_ss when disableSs = '0' else freq256;
 
 -- Adapt TMS0800 9 digit common cathode display to 4 digit + 4 leds display
 A_TO_G(6) <= not segment(0);
