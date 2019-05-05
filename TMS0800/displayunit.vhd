@@ -39,8 +39,8 @@ entity displayunit is
            show_debug : in  STD_LOGIC;
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
-			  scan_start: out STD_LOGIC;
-			  scan_end: out STD_LOGIC;
+			  digit10: out STD_LOGIC;
+			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
 end displayunit;
 
@@ -92,7 +92,7 @@ constant bcdfont: anodepattern :=(
 );
 
 --signal scan_counter: std_logic_vector(3 downto 0);
-signal scan: std_logic_vector(10 downto 0);
+signal scan: std_logic_vector(9 downto 0);
 signal blank, blank_candidate, blank_cascade: std_logic;
 
 signal hex: std_logic_vector(3 downto 0);
@@ -104,55 +104,48 @@ signal seg_dp: std_logic;
 
 begin
 
-scan_start  <= not scan(10);
-nDigit 		<= scan(9 downto 1);
-scan_end 	<= not scan(0);
+-- drive scan - note that even in debug output mode, nDigit lines drive keyboard correctly
+-- but the segments display debug selection 
+nDigit 	<= scan(9 downto 1);
+digit10 	<= not scan(0);
+
+drive_scan: process(clk, scan, reset)
+begin
+	if (reset = '1') then
+		scan <= "1111111110";
+	else
+		if (rising_edge(clk)) then
+			scan <= scan(0) & scan(9 downto 1);
+		end if;
+	end if;
+end process;
 							
 -- debug path ---
-hexmux: mux11x4 port map 
-	(
-		e => scan,
-		x(3 downto 0) => "0000",
-		x(35 downto 4) => debug,
-		x(43 downto 36) => X"00",
-		y => hex
-	);
-
---with scan select
---	hex <= 	debug(3  downto  0) when "11111111101", --when X"0",
---				debug(7  downto  4) when "11111111011", --when X"1",
---				debug(11 downto  8) when "11111110111", --when X"2",
---				debug(15 downto 12) when "11111101111", --when X"3",
---				debug(19 downto 16) when "11111011111", --when X"4",
---				debug(23 downto 20) when "11110111111", --when X"5",
---				debug(27 downto 24) when "11101111111", --when X"6",
---				debug(31 downto 28) when "11011111111", --when X"7",
---				"0000" when others;
+with dbg_select select
+	hex <= 	debug(3 downto 0) 	when "000", 
+				debug(7 downto 4) 	when "001", 
+				debug(11 downto 8) 	when "010", 
+				debug(15 downto 12) 	when "011", 
+				debug(19 downto 16) 	when "100", 
+				debug(23 downto 20) 	when "101", 
+				debug(27 downto 24) 	when "110", 
+				debug(31 downto 28) 	when "111";
+				--scan(3 downto 0) 	when "101", 
+				--scan(7 downto 4) 	when "110", 
+				--"11" & scan(9 downto 8) 	when "111";
 
 seg_hex <= hexfont(to_integer(unsigned(hex)));
 
 -- data path ---
 bcdmux: mux11x4 port map 
 	(
-		e => scan,
+		e => scan & '1',
 		x(3 downto 0) => "0000",
 		x(39 downto 4) => a,
 		x(43 downto 40) => "0000",
 		y => bcd
 	);
-	
---with scan select
---	bcd <= 	a(3  downto  0) when "11111111101", --X"0",
---				a(7  downto  4) when "11111111011", --X"1",
---				a(11 downto  8) when "11111110111", --X"2",
---				a(15 downto 12) when "11111101111", --X"3",
---				a(19 downto 16) when "11111011111", --X"4",
---				a(23 downto 20) when "11110111111", --X"5",
---				a(27 downto 24) when "11101111111", --X"6",
---				a(31 downto 28) when "11011111111", --X"7",
---				a(35 downto 32) when "10111111111", --X"8",
---				"0000" when others;
-				
+					
 seg_bcd <= bcdfont(to_integer(unsigned(bcd)));
 
 -- decimal point dot
@@ -170,9 +163,9 @@ with dp_pos select
 -- blanking logic
 blank_candidate <= scan(0) and not(seg_dp or bcd(3) or bcd(2) or bcd(1) or bcd(0));
 
-blanking: process(clk, blank_candidate, scan(10))
+blanking: process(clk, blank_candidate, scan(0))
 begin
-	if (scan(10) = '0') then
+	if (scan(0) = '0') then
 		blank_cascade <= '1';
 	else
 		if (rising_edge(clk)) then
@@ -181,44 +174,16 @@ begin
 	end if;
 end process;
 
-blank <= blank_candidate and blank_cascade;
+-- TODO: re-enable blanking
+blank <= '0'; --blank_candidate and blank_cascade;
 
 seg_data <= pattern_blank when (blank = '1') else seg_dp & seg_bcd(6 downto 0);
 
-dbg_state <= blank & blank_candidate & blank_cascade & scan(10);
+dbg_state <= scan(3 downto 0); --blank & blank_candidate & blank_cascade & scan(10);
 
 -- select path to display
 segment <= seg_hex when (show_debug = '1') else seg_data;
 
-drive_scan: process(clk, scan, reset)
-begin
-	if (reset = '1') then
-		scan <= "01111111111";
-	else
-		if (rising_edge(clk)) then
-			scan <= scan(0) & scan(10 downto 1);
-		end if;
-	end if;
-end process;
-
-		
----- count digit downwards to allow zero blanking		
---scan: process(clk, scan_counter, show_debug, is_blankable)
---begin
---	if (rising_edge(clk)) then
---		scan_counter <= std_logic_vector(unsigned(scan_counter) - 1);
---		case scan_counter is
---			when X"9" => -- set initial blanking enable before first digit is displayed
---				enable_blanking <= not show_debug;
---			when X"8" | X"7" | X"6" | X"5" | X"4" | X"3" | X"2" => -- continue enabling based on current value
---				enable_blanking <= enable_blanking and not (is_blankable);
---			when X"1" => -- LSD always shows, even if 0
---				enable_blanking <= '0';
---			when others =>
---				null;
---		end case;
---	end if;
---end process;
 
 end Behavioral;
 

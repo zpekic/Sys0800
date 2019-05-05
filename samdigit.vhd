@@ -40,17 +40,19 @@ entity samdigit is
            mleft : in  STD_LOGIC;
            m : in  STD_LOGIC;
            mright : in  STD_LOGIC;
-           digit : buffer STD_LOGIC_VECTOR(3 downto 0));
+           digit : out STD_LOGIC_VECTOR(3 downto 0));
 end samdigit;
 
 architecture Behavioral of samdigit is
 
 signal in_l, in_r: std_logic_vector(3 downto 0);
+signal val: std_logic_vector(3 downto 0) := X"9"; -- TODO remove value
 
 begin
 
 in_l <= in1 when (mleft = '1') else "0000";
 in_r <= in2 when (mright = '1') else "0000";
+digit <= val;
 
 y_update: process(clk, nEnable, sel, m, in_l, in_r)
 begin
@@ -58,11 +60,11 @@ begin
 		if (rising_edge(clk)) then
 			case sel is
 				when bcd_fromleft =>
-					digit <= in_l;
+					val <= in_l;
 				when bcd_fromright =>
-					digit <= in_r;
+					val <= in_r;
 				when bcd_fromalu =>
-					digit <= X"3"; --in3;
+					val <= in3;
 				when others =>
 					null;
 			end case;

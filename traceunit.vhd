@@ -111,7 +111,7 @@ with bitSel select
 char_sent <= '1' when bitSel(3 downto 1) = "111" else '0'; 					
 
 -- when char goes to non-zero, char is being sent to txd, until hits last 2 bitSel values
-drivebitSel: process(clk_txd, txChar, reset)
+drivebitSel: process(reset, bitsel, clk_txd, txChar)
 begin
 	if (txChar = X"00" or reset = '1') then
 		bitSel <= X"0";

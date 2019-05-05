@@ -35,24 +35,29 @@ entity sambit is
            sel : in  STD_LOGIC_VECTOR (1 downto 0);
            nEnable : in  STD_LOGIC;
            m : in  STD_LOGIC;
-           flag : buffer  STD_LOGIC);
+			  inp: in STD_LOGIC;
+           flag : out  STD_LOGIC);
 end sambit;
 
 architecture Behavioral of sambit is
 
+signal fbit: std_logic := '1'; -- TODO remove value
+
 begin
 
-flag_update: process(clk, nEnable, sel, m)
+flag <= fbit;
+
+flag_update: process(clk, nEnable, sel, m, inp)
 begin
 	if (nEnable = '0' and m = '1') then
 		if (rising_edge(clk)) then
 			case sel is
 				when bit_zero =>
-					flag <= '0';
-				when bit_one =>
-					flag <= '1';
+					fbit <= '0';
+				when bit_load =>
+					fbit <= inp;
 				when bit_invert =>
-					flag <= not flag;
+					fbit <= not fbit;
 				when others =>
 					null;
 			end case;

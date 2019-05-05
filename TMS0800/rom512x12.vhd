@@ -196,7 +196,7 @@ begin
 		write(hex_line, string'(""" => X"""));
 		write(hex_line, get_string(to_integer(unsigned(temp_mem(i))), 3, 16));
 		write(hex_line, string'(""" --"));
-		write(hex_line, unassemble(temp_mem(i)));
+		write(hex_line, unassemble(temp_mem(i), '1'));
 		writeline(hex_file, hex_line);
    end loop;
 

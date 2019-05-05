@@ -25,6 +25,7 @@ constant pattern_minus: std_logic_vector(7 downto 0) := "01000000";   --(show mi
 constant pattern_blank: std_logic_vector(7 downto 0) := "00000000";
 
 constant char_NULL: std_logic_vector(7 downto 0) := X"00";
+constant char_CLEAR: std_logic_vector(7 downto 0) := X"01";
 constant char_CR: std_logic_vector(7 downto 0) := X"0D";
 constant char_LF: std_logic_vector(7 downto 0) := X"0A";
 
@@ -48,45 +49,114 @@ constant upc_return: std_logic_vector(7 downto 0) := X"01"; -- means we can't ju
 constant upc_repeat: std_logic_vector(7 downto 0) := X"FF"; -- means we can't jump to location 255!
 constant upc_fork:   std_logic_vector(7 downto 0) := X"FE"; -- means we can't jump to location 254!
 
+-- 1 big microinstruction fields
+-- single step
+constant ss_on : std_logic := '0';
+constant ss_off : std_logic := '1';
+-- update SAM
+constant sam_nop : std_logic := '0';
+constant sam_update : std_logic := '1';
+-- display
+constant zero: std_logic := '0';	-- TODO: does nothing, beside being a lame name
+constant one: std_logic := '1';	-- TODO: does nothing, beside being a lame name
+
 -- 2 bit microinstruction fields
+-- program counter
 constant pc_nop: 	std_logic_vector(1 downto 0) 		:= "00";
 constant pc_clear:std_logic_vector(1 downto 0) 		:= "01";
 constant pc_next: std_logic_vector(1 downto 0) 		:= "10";
 constant pc_load: std_logic_vector(1 downto 0) 		:= "11";
-
-constant e_nop,	digit_nop: 	std_logic_vector(1 downto 0) 		:= "00";
-constant e_init,	digit_in1:	std_logic_vector(1 downto 0) 		:= "01";
-constant e_shl,	digit_in2: 	std_logic_vector(1 downto 0) 		:= "10";
-constant e_shr,	digit_in3: 	std_logic_vector(1 downto 0) 		:= "11";
+-- E reg (ring shift register to enable single digit at a time)
+constant e_nop: 	std_logic_vector(1 downto 0) 		:= "00";
+constant e_init:	std_logic_vector(1 downto 0) 		:= "01";
+constant e_rol: 	std_logic_vector(1 downto 0) 		:= "10";
+constant e_ror: 	std_logic_vector(1 downto 0) 		:= "11";
+-- A, B, C bcd regs
+constant bcd_nop: 		std_logic_vector(1 downto 0) 		:= "00";
+constant bcd_fromleft:	std_logic_vector(1 downto 0) 		:= "01";
+constant bcd_fromright: std_logic_vector(1 downto 0) 		:= "10";
+constant bcd_fromalu: 	std_logic_vector(1 downto 0) 		:= "11";
+-- AF, BF bit regs
+constant bit_nop: 	std_logic_vector(1 downto 0) 		:= "00";
+constant bit_zero:	std_logic_vector(1 downto 0) 		:= "01";
+constant bit_load: 	std_logic_vector(1 downto 0) 		:= "10";
+constant bit_invert: std_logic_vector(1 downto 0) 		:= "11";
+-- display / kbd sync
+constant nop: 		std_logic_vector(1 downto 0) 		:= "00";
+constant pulse:	std_logic_vector(1 downto 0) 		:= "01";
+constant turnoff: std_logic_vector(1 downto 0) 		:= "10";
+constant turnon: 	std_logic_vector(1 downto 0) 		:= "11";
 
 -- 3 bit microinstruction fields
+-- destination selections
+constant dst_nop : 	std_logic_vector(2 downto 0) := "000"; -- dst reg remains the same, meaning same SAM reg will be changed
+constant dst_nop1 : 	std_logic_vector(2 downto 0) := "001";
+constant dst_nul : 	std_logic_vector(2 downto 0) := "010";	-- dst reg is cleared, meaning no SAM reg will be changed
+constant dst_bf : 	std_logic_vector(2 downto 0) := "011";
+constant dst_af : 	std_logic_vector(2 downto 0) := "100";
+constant dst_c : 		std_logic_vector(2 downto 0) := "101";
+constant dst_b : 		std_logic_vector(2 downto 0) := "110";
+constant dst_a : 		std_logic_vector(2 downto 0) := "111";
+-- ALU selections
+constant src_nop : 	std_logic_vector(2 downto 0) := "000";
+constant src_1 : 		std_logic_vector(2 downto 0) := "001";
+constant src_2 : 		std_logic_vector(2 downto 0) := "010";
+constant src_3 : 		std_logic_vector(2 downto 0) := "011";
+constant src_ab : 	std_logic_vector(2 downto 0) := "100";
+constant src_ak : 	std_logic_vector(2 downto 0) := "101";
+constant src_cb : 	std_logic_vector(2 downto 0) := "110";
+constant src_ck : 	std_logic_vector(2 downto 0) := "111";
+-- ALU functions
+constant fun_zero : 	std_logic_vector(2 downto 0) := "000";
+constant fun_s : 		std_logic_vector(2 downto 0) := "001";
+constant fun_r : 		std_logic_vector(2 downto 0) := "010";
+constant fun_xor : 	std_logic_vector(2 downto 0) := "011";
+constant fun_adchex :std_logic_vector(2 downto 0) := "100";
+constant fun_adcbcd :std_logic_vector(2 downto 0) := "101";
+constant fun_sbchex :std_logic_vector(2 downto 0) := "110";
+constant fun_sbcbcd :std_logic_vector(2 downto 0) := "111";
+-- Cond flag reg functions
+constant cf_nop : 		std_logic_vector(2 downto 0) := O"0";
+constant cf_zero : 		std_logic_vector(2 downto 0) := O"1";
+constant cf_one : 		std_logic_vector(2 downto 0) := O"2";
+constant cf_cout : 		std_logic_vector(2 downto 0) := O"3";
+constant cf_or_af_and_mask :	std_logic_vector(2 downto 0) := O"4";
+constant cf_or_bf_and_mask :	std_logic_vector(2 downto 0) := O"5";
+constant cf_or_af_xor_bf :		std_logic_vector(2 downto 0) := O"6";
+constant cf_7 :			std_logic_vector(2 downto 0) := O"7";
 
 -- 16 control unit branch conditions
-constant cond_false: integer := 15; 
-constant cond_charsent: integer := 14;
+constant cond_false: 		integer := 15; 
+constant cond_charsent: 	integer := 14;
 constant cond_enabletrace: integer := 13;
-constant cond_cond: integer := 12;
-constant cond_11: integer := 11;
-constant cond_10: integer := 10;
-constant cond_9: integer := 9;
-constant cond_8: integer := 8;
-constant cond_7: integer := 7;
-constant cond_6: integer := 6;
-constant cond_5: integer := 5;
-constant cond_4: integer := 4;
-constant cond_3: integer := 3;
-constant cond_2: integer := 2;
-constant cond_1: integer := 1;
-constant cond_true: integer := 0;
+constant cond_cflag: 		integer := 12;
+constant cond_e11: 			integer := 11;
+constant cond_kp: 			integer := 10;
+constant cond_ko: 			integer := 9;
+constant cond_kn: 			integer := 8;
+constant cond_keystrobe: 	integer := 7;
+constant cond_digit10: 		integer := 6;
+constant cond_5:			 	integer := 5;
+constant cond_dk: 			integer := 4;
+constant cond_3: 				integer := 3;
+constant cond_2: 				integer := 2;
+constant cond_1: 				integer := 1;
+constant cond_true: 			integer := 0;
 
-
+-- generic helpers
 impure function char2logic(char: in character) return std_logic;
 impure function char2hex(char: in character) return integer;
 impure function get_string(value: in integer; len: in integer; base: in integer) return string;
 impure function parseBinary8(bin_str: in string) return std_logic_vector;
 impure function parseBinary16(bin_str: in string) return std_logic_vector;
+impure function decode2(val: std_logic; s0: string; s1: string) return string;
+impure function decode4(val: std_logic_vector(1 downto 0); 	s0: string; s1: string; s2: string; s3: string) return string;
+impure function decode8(val: std_logic_vector(2 downto 0);  s0: string; s1: string; s2: string; s3: string;  s4: string; s5: string; s6: string; s7: string) return string;
+impure function decode16(val: std_logic_vector(3 downto 0); s0: string; s1: string; s2: string; s3: string;  s4: string; s5: string; s6: string; s7: string; s8: string; s9: string; s10: string; s11: string; s12: string; s13: string; s14: string; s15: string) return string;
+
+-- TODO move these elsewhere
 impure function get_mask(mask: in std_logic_vector(3 downto 0)) return string;
-impure function unassemble(instruction: in std_logic_vector(10 downto 0)) return string;
+impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: std_logic) return string;
 
 end tms0800_package;
 
@@ -191,96 +261,118 @@ begin
 	return std_logic_vector(to_unsigned(intVal, 16));
 end parseHex16;
 
+impure function decode2(val: std_logic; s0: string; s1: string) return string is
+begin
+	if (val = '0') then
+		return s0;
+	else
+		return s1;
+	end if;
+end decode2;
+
+impure function decode4(val: std_logic_vector(1 downto 0); s0: string; s1: string; s2: string; s3: string) return string is
+begin
+	if (val(1) = '0') then
+		return decode2(val(0), s0, s1);
+	else
+		return decode2(val(0), s2, s3);
+	end if;
+end decode4;
+
+impure function decode8(val: std_logic_vector(2 downto 0);  s0: string; s1: string; s2: string; s3: string;  s4: string; s5: string; s6: string; s7: string) return string is
+begin
+	if (val(2) = '0') then
+		return decode4(val(1 downto 0), s0, s1, s2, s3);
+	else
+		return decode4(val(1 downto 0), s4, s5, s6, s7);
+	end if;
+end decode8;
+
+impure function decode16(val: std_logic_vector(3 downto 0);  s0: string; s1: string; s2: string; s3: string;  s4: string; s5: string; s6: string; s7: string; s8: string; s9: string; s10: string; s11: string; s12: string; s13: string; s14: string; s15: string) return string is
+begin
+	if (val(3) = '0') then
+		return decode8(val(2 downto 0), s0, s1, s2, s3, s4, s5, s6, s7);
+	else
+		return decode8(val(2 downto 0), s8, s9, s10, s11, s12, s13, s14, s15);
+	end if;
+end decode16;
+
 impure function get_mask(mask: in std_logic_vector(3 downto 0)) return string is
 begin
-	case mask is
-		when "0000" =>
-			return "F0/DPT7";
-		when "0001" =>
-			return "F1/EXPD";
-		when "0010" =>
-			return "F2/LSD";
-		when "0011" =>
-			return "F3";
-		when "0100" =>
-			return "F4";
-		when "0101" =>
-			return "F5";
-		when "0110" =>
-			return "F6";
-		when "0111" =>
-			return "F9";
-		when "1000" =>
-			return "F10/OV1";
-		when "1001" =>
-			return "OPFGS ";
-		when "1010" =>
-			return "MSD1 ";
-		when "1011" =>
-			return "MANT1 ";
-		when "1100" =>
-			return "MANT ";
-		when "1101" =>
-			return "EXP1 ";
-		when "1110" =>
-			return "EXP ";
-		when "1111" =>
-			return "ALL ";
-		when others =>
-			return "???";
-	end case;
+	return decode16(mask, 
+			"F0/DPT7 ..........7",
+			"F1/EXPD .........4.",
+			"F2/LSD  ........1..",
+			"F3      .......0...",
+			"F4      ......0....",
+			"F5      .....0.....",
+			"F6      ....0......",
+			"F9      .0.........",
+			"F10/OV1 1..........",
+			"OPFGS   ........000",
+			"MSD1    01.........",
+			"MANT1   000000001..",
+			"MANT    000000000..",
+			"EXP1    .........01",
+			"EXP     .........00",
+			"ALL     00000000000"
+		);
 end get_mask;
 
-impure function unassemble(instruction: in std_logic_vector(11 downto 0)) return string is
+-- simple instruction disassemble
+impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: std_logic) return string is
+alias mask: std_logic_vector(3 downto 0) is instruction(3 downto 0);
+alias target: std_logic_vector(8 downto 0) is instruction(8 downto 0);
+
 begin
 	case instruction(10 downto 7) is
 		when "0000" | "0001" | "0010" | "0011" =>
-			return "BC0 " & get_string(to_integer(unsigned(instruction(8 downto 0))), 3, 16);
+			return "BC0 " & decode2(full, "", get_string(to_integer(unsigned(target)), 3, 16));
 			-- jump if condition reset
 		when "0100" | "0101" | "0110" | "0111" =>
 			-- jump if condition set
-			return "BC1 " & get_string(to_integer(unsigned(instruction(8 downto 0))), 3, 16);
+			return "BC1 " & decode2(full, "", get_string(to_integer(unsigned(target)), 3, 16));
 		when "1000" =>
 			-- address if key down on KO (0 to 127)
-			return "BKO " & get_string(to_integer(unsigned(instruction(7 downto 0))), 3, 16);
+			return "BKO " & decode2(full, "", get_string(to_integer(unsigned(target)), 3, 16));
 		when "1001" =>
 			-- address if key down on KP (128 to 255)
-			return "BKP " & get_string(to_integer(unsigned(instruction(7 downto 0))), 3, 16);
+			return "BKP " & decode2(full, "", get_string(to_integer(unsigned(target)), 3, 16));
 		when "1010" | "1011" => 
 			-- flag instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "NOP16 " & get_mask(instruction(3 downto 0));
+					return "NOP16 " & decode2(full, "", get_mask(mask));
 				when "0001" =>
-					return "WAITDK " & get_mask(instruction(3 downto 0));
+					return "WAITDK " & decode2(full, "", get_mask(mask));
 				when "0010" =>
-					return "WAITNO " & get_mask(instruction(3 downto 0));
+					return "WAITNO " & decode2(full, "", get_mask(mask));
 				when "0011" =>
-					return "SFB " & get_mask(instruction(3 downto 0));
+					return "SFB " & decode2(full, "", get_mask(mask));
 				when "0100" =>
-					return "SFA " & get_mask(instruction(3 downto 0));
+					return "SFA " & decode2(full, "", get_mask(mask));
 				when "0101" =>
-					return "SYNCH " & get_mask(instruction(3 downto 0));
+					return "SYNCH " & decode2(full, "", get_mask(mask));
 				when "0110" =>
-					return "SCANNO " & get_mask(instruction(3 downto 0));
+					return "SCANNO " & decode2(full, "", get_mask(mask));
 				when "0111" =>
-					return "ZFB " & get_mask(instruction(3 downto 0));
+					return "ZFB " & decode2(full, "", get_mask(mask));
 				when "1000" =>
-					return "ZFA " & get_mask(instruction(3 downto 0));
+					return "ZFA " & decode2(full, "", get_mask(mask));
 				when "1001" =>
-					return "TFB " & get_mask(instruction(3 downto 0));
+					return "TFB " & decode2(full, "", get_mask(mask));
 				when "1010" =>
-					return "TFA " & get_mask(instruction(3 downto 0));
+					return "TFA " & decode2(full, "", get_mask(mask));
 				when "1011" =>
-					return "FFB " & get_mask(instruction(3 downto 0));
+					return "FFB " & decode2(full, "", get_mask(mask));
 				when "1100" =>
-					return "FFA " & get_mask(instruction(3 downto 0));
+					return "FFA " & decode2(full, "", get_mask(mask));
 				when "1101" =>
-					return "CF " & get_mask(instruction(3 downto 0));
+					return "CF " & decode2(full, "", get_mask(mask));
 				when "1110" =>
-					return "NOP30 " & get_mask(instruction(3 downto 0));
+					return "NOP30 " & decode2(full, "", get_mask(mask));
 				when "1111" =>
-					return "EXF " & get_mask(instruction(3 downto 0));
+					return "EXF " & decode2(full, "", get_mask(mask));
 				when others =>
 					return "???";
 			end case;
@@ -288,37 +380,37 @@ begin
 			-- register instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "AABA " & get_mask(instruction(3 downto 0));
+					return "AABA " & decode2(full, "", get_mask(mask));
 				when "0001" =>
-					return "AAKA " & get_mask(instruction(3 downto 0));
+					return "AAKA " & decode2(full, "", get_mask(mask));
 				when "0010" =>
-					return "AAKC " & get_mask(instruction(3 downto 0));
+					return "AAKC " & decode2(full, "", get_mask(mask));
 				when "0011" =>
-					return "ABOA " & get_mask(instruction(3 downto 0));
+					return "ABOA " & decode2(full, "", get_mask(mask));
 				when "0100" =>
-					return "ABOC " & get_mask(instruction(3 downto 0));
+					return "ABOC " & decode2(full, "", get_mask(mask));
 				when "0101" =>
-					return "ACKA " & get_mask(instruction(3 downto 0));
+					return "ACKA " & decode2(full, "", get_mask(mask));
 				when "0110" =>
-					return "ACKB " & get_mask(instruction(3 downto 0));
+					return "ACKB " & decode2(full, "", get_mask(mask));
 				when "0111" =>
-					return "SABA " & get_mask(instruction(3 downto 0));
+					return "SABA " & decode2(full, "", get_mask(mask));
 				when "1000" =>
-					return "SABC " & get_mask(instruction(3 downto 0));
+					return "SABC " & decode2(full, "", get_mask(mask));
 				when "1001" =>
-					return "SAKA " & get_mask(instruction(3 downto 0));
+					return "SAKA " & decode2(full, "", get_mask(mask));
 				when "1010" =>
-					return "SCBC " & get_mask(instruction(3 downto 0));
+					return "SCBC " & decode2(full, "", get_mask(mask));
 				when "1011" =>
-					return "SCKC " & get_mask(instruction(3 downto 0));
+					return "SCKC " & decode2(full, "", get_mask(mask));
 				when "1100" =>
-					return "CAB " & get_mask(instruction(3 downto 0));
+					return "CAB " & decode2(full, "", get_mask(mask));
 				when "1101" =>
-					return "CAK " & get_mask(instruction(3 downto 0));
+					return "CAK " & decode2(full, "", get_mask(mask));
 				when "1110" =>
-					return "CCB " & get_mask(instruction(3 downto 0));
+					return "CCB " & decode2(full, "", get_mask(mask));
 				when "1111" =>
-					return "CCK " & get_mask(instruction(3 downto 0));
+					return "CCK " & decode2(full, "", get_mask(mask));
 				when others =>
 					return "???";
 			end case;
@@ -326,37 +418,37 @@ begin
 			-- register instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "AKA " & get_mask(instruction(3 downto 0));
+					return "AKA " & decode2(full, "", get_mask(mask));
 				when "0001" =>
-					return "AKB " & get_mask(instruction(3 downto 0));
+					return "AKB " & decode2(full, "", get_mask(mask));
 				when "0010" =>
-					return "AKC " & get_mask(instruction(3 downto 0));
+					return "AKC " & decode2(full, "", get_mask(mask));
 				when "0011" =>
-					return "EXAB " & get_mask(instruction(3 downto 0));
+					return "EXAB " & decode2(full, "", get_mask(mask));
 				when "0100" =>
-					return "SLLA " & get_mask(instruction(3 downto 0));
+					return "SLLA " & decode2(full, "", get_mask(mask));
 				when "0101" =>
-					return "SLLB " & get_mask(instruction(3 downto 0));
+					return "SLLB " & decode2(full, "", get_mask(mask));
 				when "0110" =>
-					return "SLLC " & get_mask(instruction(3 downto 0));
+					return "SLLC " & decode2(full, "", get_mask(mask));
 				when "0111" =>
-					return "SRLA " & get_mask(instruction(3 downto 0));
+					return "SRLA " & decode2(full, "", get_mask(mask));
 				when "1000" =>
-					return "SRLB " & get_mask(instruction(3 downto 0));
+					return "SRLB " & decode2(full, "", get_mask(mask));
 				when "1001" =>
-					return "SRLC " & get_mask(instruction(3 downto 0));
+					return "SRLC " & decode2(full, "", get_mask(mask));
 				when "1010" =>
-					return "AKCN " & get_mask(instruction(3 downto 0));
+					return "AKCN " & decode2(full, "", get_mask(mask));
 				when "1011" =>
-					return "AAKAH " & get_mask(instruction(3 downto 0));
+					return "AAKAH " & decode2(full, "", get_mask(mask));
 				when "1100" =>
-					return "SAKAH " & get_mask(instruction(3 downto 0));
+					return "SAKAH " & decode2(full, "", get_mask(mask));
 				when "1101" =>
-					return "ACKC " & get_mask(instruction(3 downto 0));
+					return "ACKC " & decode2(full, "", get_mask(mask));
 				when "1110" =>
-					return "??? " & get_mask(instruction(3 downto 0));
+					return "??? " & decode2(full, "", get_mask(mask));
 				when "1111" =>
-					return "??? " & get_mask(instruction(3 downto 0));
+					return "??? " & decode2(full, "", get_mask(mask));
 				when others =>
 					return "???";
 			end case;

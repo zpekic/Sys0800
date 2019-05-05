@@ -50,7 +50,7 @@ with e select
 			x(35 downto 32) when "11011111111", --X"8",
 			x(39 downto 36) when "10111111111", --X"9",
 			x(43 downto 40) when "01111111111", --X"A",
-			"0000" when others;
+			"1111" when others; -- TODO change to 0 or F?
 
 end Behavioral;
 

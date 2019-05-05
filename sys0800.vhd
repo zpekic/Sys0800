@@ -83,15 +83,61 @@ entity sys0800 is
 				--ADC_MOSI: out std_logic;
 				--ADC_SCK: out std_logic;
 				--ADC_CSN: out std_logic;
-				--PMOD interface
-				PMOD: inout std_logic_vector(7 downto 0)--;
 				--PS2_DATA: in std_logic;
-				--PS2_CLOCK: out std_logic
-
+				--PS2_CLOCK: in std_logic;
+				--PMOD interface
+				PMOD: inout std_logic_vector(7 downto 0)
           );
 end sys0800;
 
 architecture Structural of sys0800 is
+
+-------
+-- From: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=28278929#PS/2KeyboardInterface(VHDL)-CodeDownloads
+-------
+component ps2_keyboard IS
+  GENERIC(
+    clk_freq              : INTEGER := 50_000_000; --system clock frequency in Hz
+    debounce_counter_size : INTEGER := 8);         --set such that (2^size)/clk_freq = 5us (size = 8 for 50MHz)
+  PORT(
+    clk          : IN  STD_LOGIC;                     --system clock
+    ps2_clk      : IN  STD_LOGIC;                     --clock signal from PS/2 keyboard
+    ps2_data     : IN  STD_LOGIC;                     --data signal from PS/2 keyboard
+    ps2_code_new : OUT STD_LOGIC;                     --flag that new PS/2 code is available on ps2_code bus
+    ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)); --code received from PS/2
+END component;
+
+-------------------------------------------
+-- From : https://opencores.org/websvn/filedetails?repname=ps2core&path=%2Fps2core%2Ftrunk%2Frtl%2Fvhdl%2Fps2.vhd
+-------------------------------------------
+--component ps2 is
+--        port (
+--                clk_i : in std_logic;   -- Global clk
+--                rst_i : in std_logic;   -- GLobal Asinchronous reset
+-- 
+--                data_o    : out std_logic_vector(7 downto 0);  -- Data in
+--                data_i    : in  std_logic_vector(7 downto 0);  -- Data out
+--                ibf_clr_i : in  std_logic;  -- Ifb flag clear input
+--                obf_set_i : in  std_logic;  -- Obf flag set input
+--                ibf_o     : out std_logic;  -- Received data available
+--                obf_o     : out std_logic;  -- Data ready to sent
+-- 
+--                frame_err_o  : out std_logic;  -- Error receiving data
+--                parity_err_o : out std_logic;  -- Error in received data parity
+--                busy_o       : out std_logic;  -- uart busy
+--                err_clr_i : in std_logic;  -- Clear error flags
+-- 
+--                wdt_o : out std_logic;  -- Watchdog timer out every 400uS
+-- 
+--                ps2_clk_io  : inout std_logic;   -- PS2 Clock line
+--                ps2_data_io : inout std_logic);  -- PS2 Data line
+--end component;
+
+component mux11x4 is
+    Port ( e : in  STD_LOGIC_VECTOR (10 downto 0);
+           x : in  STD_LOGIC_VECTOR (43 downto 0);
+           y : out  STD_LOGIC_VECTOR (3 downto 0));
+end component;
 
 component clock_divider is
 	 generic (CLK_FREQ: integer);
@@ -115,6 +161,14 @@ component clocksinglestepper is
            clock_out : out STD_LOGIC);
 end component;
 
+component freqmux is
+    Port ( reset : in  STD_LOGIC;
+           f0in : in  STD_LOGIC;
+           f1in : in  STD_LOGIC;
+           sel : in  STD_LOGIC;
+           fout : out  STD_LOGIC);
+end component;
+
 component debouncer8channel is
     Port ( clock : in  STD_LOGIC;
            reset : in  STD_LOGIC;
@@ -124,8 +178,8 @@ end component;
 
 component tms0800 is
     Port ( reset : in  STD_LOGIC;
-           clk_calc : in  STD_LOGIC;
-           clk_scan : in  STD_LOGIC;
+           clk_cpu : in  STD_LOGIC;
+           clk_du : in  STD_LOGIC;
            clk_txd : in  STD_LOGIC;
            enable_trace : in  STD_LOGIC;
            show_debug : in  STD_LOGIC;
@@ -138,14 +192,43 @@ component tms0800 is
 			  trace_txd: out STD_LOGIC;
 			  trace_rxd: in STD_LOGIC;
 			  disableSingleStep: out STD_LOGIC;
+			  ps2: in STD_LOGIC_VECTOR(15 downto 0);
+			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
 end component;
 
-signal freq2k, freq1k, freq512, freq256, freq128, freq64, freq32, freq16, freq8, freq4, freq2, freq1: std_logic;
-signal freq38400, freq19200, freq9600, freq4800, freq2400, freq1200, freq600, freq300: std_logic;
-signal freq25M, freq12M5, freq6M25, freq3M125, freq1M5625: std_logic;
+-- various frequencies
 
-signal reset: std_logic;
+signal slow: std_logic_vector(11 downto 0);
+signal baud: std_logic_vector(7 downto 0);
+signal fast: std_logic_vector(4 downto 0);
+--        slow(11) => freq1, -- 1Hz
+alias freq2: std_logic is slow(10); -- 2Hz
+--        slow(9) => freq4, -- 4Hz
+--        slow(8) => freq8, -- 8Hz
+--        slow(7) => freq16,  -- 16Hz
+--        slow(6) => freq32,  -- 32Hz
+--        slow(5) => freq64,  -- 64Hz
+--        slow(4) => freq128,  -- 128Hz
+--        slow(3) => freq256,  -- 256Hz
+alias freq512: std_logic is slow(2);  	-- 512Hz
+alias freq1k: std_logic is slow(1);  	-- 1024Hz
+alias freq2k: std_logic is slow(0);  	-- 2048Hz
+--		  baud(7) => freq300,
+--		  baud(6) => freq600,		  
+--		  baud(5) => freq1200,
+--		  baud(4) => freq2400,
+--		  baud(3) => freq4800,
+--		  baud(2) => freq9600,
+--		  baud(1) => freq19200,
+alias freq38400: std_logic is baud(0);		-- 38400
+alias freq1M5625: std_logic is fast(4); 	-- 1.5625MHz
+--		  fast(3) => freq3M125,
+--		  fast(2) => freq6M25,
+--		  fast(1) => freq12M5,
+--		  fast(0) => freq25M
+
+signal reset, nReset: std_logic;
 -- debounced inputs
 signal switch: std_logic_vector(7 downto 0);
 alias enable_trace: std_logic is switch(0);
@@ -154,7 +237,7 @@ alias show_debug: std_logic is switch(1);
 signal button: std_logic_vector(3 downto 0);
 alias show_upper_digits: std_logic is button(0);
 
-alias clk_scan: std_logic is freq2k;
+alias clk_du: std_logic is freq2k;
 alias clk_txd: std_logic is freq38400;
 
 -- keyboard
@@ -169,14 +252,22 @@ signal k_clear, 	k_equals, 	k_plus, 	k_minus, k_multiply, k_divide, 	k_cerror, 	
 signal nDigit: std_logic_vector(8 downto 0);
 signal segment: std_logic_vector(7 downto 0);
 signal led_debug, led_digit8: std_logic_vector(3 downto 0);
+signal debugAn: std_logic_vector(3 downto 0) := "1110";
+signal tmsAn: std_logic_vector(3 downto 0);
+
+-- PS/2 interface ----------------
+signal ps2_pulse: std_logic;
+signal ps2_code: std_logic_vector(7 downto 0);
+signal ps2_scan: std_logic_vector(15 downto 0);
 
 -- other
-signal clk_calc, clk_ss: std_logic;
+signal clk_cpu, clk_ss: std_logic;
 signal trace_txd, disableSs: std_logic;
 
 begin
    
 	reset <= USR_BTN;
+	nReset <= not reset;
 
     -- FREQUENCY GENERATOR
     one_sec: clock_divider
@@ -185,31 +276,9 @@ begin
     (
         clock => CLK,
         reset => Reset,
-        slow(11) => freq1, -- 1Hz
-        slow(10) => freq2, -- 2Hz
-        slow(9) => freq4, -- 4Hz
-        slow(8) => freq8, -- 8Hz
-        slow(7) => freq16,  -- 16Hz
-        slow(6) => freq32,  -- 32Hz
-        slow(5) => freq64,  -- 64Hz
-        slow(4) => freq128,  -- 128Hz
-        slow(3) => freq256,  -- 256Hz
-        slow(2) => freq512,  -- 512Hz
-        slow(1) => freq1k,  -- 1024Hz
-        slow(0) => freq2k,  -- 2048Hz
-		  baud(7) => freq300,
-		  baud(6) => freq600,		  
-		  baud(5) => freq1200,
-		  baud(4) => freq2400,
-		  baud(3) => freq4800,
-		  baud(2) => freq9600,
-		  baud(1) => freq19200,
-		  baud(0) => freq38400,
-		  fast(4) => freq1M5625,
-		  fast(3) => freq3M125,
-		  fast(2) => freq6M25,
-		  fast(1) => freq12M5,
-		  fast(0) => freq25M
+        slow => slow,
+		  baud => baud,
+		  fast => fast
     );
 
 	-- Single step by each clock cycle, slow or fast
@@ -248,8 +317,8 @@ begin
 
 	calculator: tms0800 Port map ( 
 		reset => reset,
-		clk_calc => clk_calc,
-		clk_scan => clk_scan,
+		clk_cpu => clk_cpu,
+		clk_du => clk_du,
 		clk_txd => clk_txd,
 		enable_trace => enable_trace,
 		show_debug => show_debug,
@@ -262,10 +331,20 @@ begin
 		trace_txd => PMOD(3), 
 		trace_rxd => PMOD(2),
 		disableSingleStep => disableSs,
+		ps2 => X"FFFF" xor ("111" & nDigit & kd & kc & kb & ka), --ps2_scan,
+		dbg_select(2) => show_upper_digits,
+		dbg_select(1 downto 0) => slow(4 downto 3), 
 		dbg_state => led_debug
 	);
 
-clk_calc <= clk_ss when disableSs = '0' else freq256;
+--clk_cpu <= clk_ss when disableSs = '0' else freq256;
+ss_mux: freqmux Port map ( 
+				reset => reset,
+				f0in => clk_ss,
+				f1in => freq1k,
+				sel => disableSs,
+				fout => clk_cpu
+			 );
 
 -- Adapt TMS0800 9 digit common cathode display to 4 digit + 4 leds display
 A_TO_G(6) <= not segment(0);
@@ -276,97 +355,172 @@ A_TO_G(2) <= not segment(4);
 A_TO_G(1) <= not segment(5);
 A_TO_G(0) <= not segment(6);
 DOT <= not segment(7);
-AN <= nDigit(7 downto 4) when (show_upper_digits = '1') else nDigit(3 downto 0);
-LED <= led_debug;-- when (show_debug = '1') else led_digit8;
 
---led_debug <= kbd_row;--k_0 & k_8 & k_6 & k_plus;--kd & kc & kb & ka;--trace_txd & clk_calc & display_debug & enable_trace;
+AN <= debugAn when (show_debug = '1') else tmsAn;
+LED <= led_debug when (show_debug = '1') else led_digit8;
 
-digit8: process(clk_scan, nDigit(8), segment)
+tmsAn <= nDigit(7 downto 4) when (show_upper_digits = '1') else nDigit(3 downto 0);
+
+with slow(4 downto 3) select
+	debugAn <= 	"1110" when "00",
+					"1101" when "01",
+					"1011" when "10",
+					"0111" when "11";
+
+led_digit8 <= "1111" when (nDigit(8) = '0' and segment = pattern_minus) else "0000";
+
+--kbd: ps2_keyboard generic map
+--	(
+--		clk_freq => 50_000_000, --system clock frequency in Hz
+--		debounce_counter_size => 8         --set such that (2^size)/clk_freq = 5us (size = 8 for 50MHz)
+--	)
+--	port map
+--	(
+--		 clk          => CLK,          --system clock
+--		 ps2_clk      => PS2_CLOCK,    --clock signal from PS/2 keyboard
+--		 ps2_data     => PS2_DATA,     --data signal from PS/2 keyboard
+--		 ps2_code_new => ps2_pulse,    --flag that new PS/2 code is available on ps2_code bus
+--		 ps2_code     => ps2_code 		 --code received from PS/2
+--	);
+
+--ps2kbd: ps2 port map 
+--		(
+--		 clk_i => CLK,   	-- Global clk
+--		 rst_i => nReset,  -- GLobal Asinchronous reset
+--
+--		 data_o    => ps2_code,		-- Data in
+--		 data_i    => X"00",  		-- Data out
+--		 ibf_clr_i => button(1),  	-- Ifb flag clear input
+--		 obf_set_i => '0',  			-- Obf flag set input
+--		 ibf_o     => ps2_pulse,  	-- Received data available
+--		 obf_o     => open,  		-- Data ready to sent
+--
+--		 frame_err_o  => open,  -- Error receiving data
+--		 parity_err_o => open,  -- Error in received data parity
+--		 busy_o       => open,  -- uart busy
+--		 err_clr_i 	  => '0',  	-- Clear error flags
+--
+--		 wdt_o => open,  -- Watchdog timer out every 400uS
+--
+--		 ps2_clk_io  => PS2_CLOCK,   -- PS2 Clock line
+--		 ps2_data_io => PS2_DATA	  -- PS2 Data line
+--		);
+
+ps2_key: process(reset, ps2_pulse, ps2_code)
 begin
-	if (falling_edge(clk_scan)) then
-		if (segment = pattern_minus and nDigit(8) = '0') then
-			led_digit8 <= "1111";
-		else
-			led_digit8 <= "0000";
+	--if (reset = '1') then
+	--	ps2_scan <= X"BEEF";
+	--else
+		if (rising_edge(ps2_pulse)) then
+			ps2_scan <= std_logic_vector(unsigned(ps2_scan) + 1);
+			--ps2_scan(15 downto 8) <= ps2_scan(7 downto 0);
+			--ps2_scan(7 downto 0) <= ps2_code;
 		end if;
-	end if;
+	--end if;
 end process;
 
 -- Adapt TMS0800 scan keyboard
---PMOD(3 downto 0) <= kbd_col;
+
+k_1 <= not button(1) when (switch(4 downto 2) = "000") else '1';
+k_2 <= not button(1) when (switch(4 downto 2) = "001") else '1';
+k_3 <= not button(1) when (switch(4 downto 2) = "010") else '1';
+k_4 <= not button(1) when (switch(4 downto 2) = "011") else '1';
+k_5 <= not button(1) when (switch(4 downto 2) = "100") else '1';
+k_6 <= not button(1) when (switch(4 downto 2) = "101") else '1';
+k_7 <= not button(1) when (switch(4 downto 2) = "110") else '1';
+k_8 <= not button(1) when (switch(4 downto 2) = "111") else '1';
+k_9 <= '1'; -- TODO!
+
+k_clear 		<= not button(2) when (switch(4 downto 2) = "000") else '1';
+k_equals 	<= not button(2) when (switch(4 downto 2) = "001") else '1';
+k_plus 		<= not button(2) when (switch(4 downto 2) = "010") else '1';
+k_minus 		<= not button(2) when (switch(4 downto 2) = "011") else '1';
+k_multiply 	<= not button(2) when (switch(4 downto 2) = "100") else '1';
+k_divide 	<= not button(2) when (switch(4 downto 2) = "101") else '1';
+k_cerror 	<= not button(2) when (switch(4 downto 2) = "110") else '1';
+k_dot 		<= not button(2) when (switch(4 downto 2) = "111") else '1';
+k_0			<= '1'; -- TODO!
+
+-- intersect digit scans with the keys to drive kx lines
+kbdmux: mux11x4 port map 
+	(
+		e => "11" & nDigit,
+		x(43 downto 40) => "1111",
+		x(39 downto 36) => "1111",
+		x(35 downto 32) => '1' & k_1 & k_clear 	& '1',
+		x(31 downto 28) => '1' & k_2 & k_equals 	& '1',
+		x(27 downto 24) => '1' & k_3 & k_plus 		& '1',
+		x(23 downto 20) => '1' & k_4 & k_minus 	& '1',
+		x(19 downto 16) => '1' & k_5 & k_multiply & '1',
+		x(15 downto 12) => '1' & k_6 & k_divide 	& '1',
+		x(11 downto 8)  => '1' & k_7 & k_cerror 	& '1',
+		x(7 downto 4)   => '1' & k_8 & k_dot 		& '1',
+		x(3 downto 0)   => '1' & k_9 & k_0 			& '1',
+		y(3) => kd,	-- not used
+		y(2) => kc, -- == kn
+		y(1) => kb,	-- == ko
+		y(0) => ka	-- == kp, not used
+	);
 
 -- scanning rows and cols
-drive_kbd: process(freq64, kbd_row)
-begin
-	if (rising_edge(freq64)) then
-		kbd_cnt <= std_logic_vector(unsigned(kbd_cnt) + 1);
-		case kbd_cnt is
-			when X"0" =>
-				kbd_col <= "0111"; --
-				k_0 <= kbd_row(0);
-			when X"1" =>
-				kbd_col <= "0111"; --
-				k_1 <= kbd_row(3);
-			when X"2" =>
-				kbd_col <= "1011"; --
-				k_2 <= kbd_row(3);
-			when X"3" =>
-				kbd_col <= "1101"; 
-				k_3 <= kbd_row(3);
-			when X"4" =>
-				kbd_col <= "0111"; --
-				k_4 <= kbd_row(2);
-			when X"5" =>
-				kbd_col <= "1011"; --
-				k_5 <= kbd_row(2);
-			when X"6" =>
-				kbd_col <= "1101";
-				k_6 <= kbd_row(2);
-			when X"7" =>
-				kbd_col <= "0111"; --
-				k_7 <= kbd_row(1);
-			when X"8" =>
-				kbd_col <= "1011"; --
-				k_8 <= kbd_row(1);
-			when X"9" =>
-				kbd_col <= "1101";
-				k_9 <= kbd_row(1);
-			when X"A" =>
-				kbd_col <= "1110";
-				k_plus <= kbd_row(3);
-			when X"B" =>
-				kbd_col <= "1110";
-				k_minus <= kbd_row(2);
-			when X"C" =>
-				kbd_col <= "1110";
-				k_multiply <= kbd_row(1);
-			when X"D" =>
-				kbd_col <= "1110";
-				k_divide <= kbd_row(0);
-			when X"E" =>
-				kbd_col <= "1101";
-				k_equals <= kbd_row(0);
-			when X"F" =>
-				kbd_col <= "1011"; --
-				k_dot <= kbd_row(0);
-			when others =>
-				null;
-		end case;
-	end if;
-end process;
-
-
--- clear and clear error keys do not fit on the https://store.digilentinc.com/pmod-kypd-16-button-keypad/
-k_clear <= not button(1);
-k_cerror <= not button(2);
--- intersect digit scans with the keys to drive kx lines
-kd <= '1';
-kc <= (nDigit(8) or k_1) 		and (nDigit(7) or k_2)      and (nDigit(6) or k_3)    and (nDigit(5) or k_4)     and (nDigit(4) or k_5)        and (nDigit(3) or k_6)      and (nDigit(2) or k_7)      and (nDigit(1) or k_8)   and (nDigit(0) or k_9);
-kb <= (nDigit(8) or k_clear)  and (nDigit(7) or k_equals) and (nDigit(6) or k_plus) and (nDigit(5) or k_minus) and (nDigit(4) or k_multiply) and (nDigit(3) or k_divide) and (nDigit(2) or k_cerror) and (nDigit(1) or k_dot) and (nDigit(0) or k_0);
-ka <= '1';
-
-end;
-
+--drive_kbd: process(freq64, kbd_row)
+--begin
+--	if (rising_edge(freq64)) then
+--		kbd_cnt <= std_logic_vector(unsigned(kbd_cnt) + 1);
+--		case kbd_cnt is
+--			when X"0" =>
+--				kbd_col <= "0111"; --
+--				k_0 <= kbd_row(0);
+--			when X"1" =>
+--				kbd_col <= "0111"; --
+--				k_1 <= kbd_row(3);
+--			when X"2" =>
+--				kbd_col <= "1011"; --
+--				k_2 <= kbd_row(3);
+--			when X"3" =>
+--				kbd_col <= "1101"; 
+--				k_3 <= kbd_row(3);
+--			when X"4" =>
+--				kbd_col <= "0111"; --
+--				k_4 <= kbd_row(2);
+--			when X"5" =>
+--				kbd_col <= "1011"; --
+--				k_5 <= kbd_row(2);
+--			when X"6" =>
+--				kbd_col <= "1101";
+--				k_6 <= kbd_row(2);
+--			when X"7" =>
+--				kbd_col <= "0111"; --
+--				k_7 <= kbd_row(1);
+--			when X"8" =>
+--				kbd_col <= "1011"; --
+--				k_8 <= kbd_row(1);
+--			when X"9" =>
+--				kbd_col <= "1101";
+--				k_9 <= kbd_row(1);
+--			when X"A" =>
+--				kbd_col <= "1110";
+--				k_plus <= kbd_row(3);
+--			when X"B" =>
+--				kbd_col <= "1110";
+--				k_minus <= kbd_row(2);
+--			when X"C" =>
+--				kbd_col <= "1110";
+--				k_multiply <= kbd_row(1);
+--			when X"D" =>
+--				kbd_col <= "1110";
+--				k_divide <= kbd_row(0);
+--			when X"E" =>
+--				kbd_col <= "1101";
+--				k_equals <= kbd_row(0);
+--			when X"F" =>
+--				kbd_col <= "1011"; --
+--				k_dot <= kbd_row(0);
+--			when others =>
+--				null;
+--		end case;
+--	end if;
+--end process;
 
 --drive_col: process(freq32, kbd_col, reset)
 --begin
@@ -419,3 +573,4 @@ end;
 --	end if;
 --end process;
 
+end;
