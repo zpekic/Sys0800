@@ -130,16 +130,13 @@ with dbg_select select
 				debug(23 downto 20) 	when "101", 
 				debug(27 downto 24) 	when "110", 
 				debug(31 downto 28) 	when "111";
-				--scan(3 downto 0) 	when "101", 
-				--scan(7 downto 4) 	when "110", 
-				--"11" & scan(9 downto 8) 	when "111";
 
 seg_hex <= hexfont(to_integer(unsigned(hex)));
 
 -- data path ---
 bcdmux: mux11x4 port map 
 	(
-		e => scan & '1',
+		e => '1' & scan,
 		x(3 downto 0) => "0000",
 		x(39 downto 4) => a,
 		x(43 downto 40) => "0000",
@@ -161,7 +158,8 @@ with dp_pos select
 					'0' when others;
 
 -- blanking logic
-blank_candidate <= scan(0) and not(seg_dp or bcd(3) or bcd(2) or bcd(1) or bcd(0));
+--blank_candidate <= scan(0) and not(seg_dp or bcd(3) or bcd(2) or bcd(1) or bcd(0));
+blank_candidate <= (scan(0) and not (seg_dp)) when (bcd = X"0") else '0';
 
 blanking: process(clk, blank_candidate, scan(0))
 begin
@@ -174,8 +172,8 @@ begin
 	end if;
 end process;
 
--- TODO: re-enable blanking
-blank <= '0'; --blank_candidate and blank_cascade;
+-- enable blanking
+blank <= blank_candidate and blank_cascade;
 
 seg_data <= pattern_blank when (blank = '1') else seg_dp & seg_bcd(6 downto 0);
 

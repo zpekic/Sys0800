@@ -8,21 +8,23 @@
       <ClosedNodes>
          <ClosedNodesVersion>2</ClosedNodesVersion>
          <ClosedNode>/debouncer8channel - Behavioral C:|Users|zoltanp|Documents|HexCalc|Sys0800|debouncer8channel.vhd</ClosedNode>
-         <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/calculator - tms0800 - Behavioral</ClosedNode>
+         <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/calculator - tms0800 - Behavioral/du - displayunit - Behavioral</ClosedNode>
          <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/debouncer_btn - debouncer8channel - Behavioral</ClosedNode>
          <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/debouncer_kbd_btn - debouncer8channel - Behavioral</ClosedNode>
          <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/debouncer_sw - debouncer8channel - Behavioral</ClosedNode>
+         <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|sys0800|sys0800.vhd/debouncer_kbd_btn - debouncer8channel - Behavioral</ClosedNode>
+         <ClosedNode>/sys0800 - Structural C:|Users|zoltanp|Documents|HexCalc|sys0800|sys0800.vhd/debouncer_sw - debouncer8channel - Behavioral</ClosedNode>
          <ClosedNode>/sys_primegen - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/debouncer_btn - debouncer8channel - Behavioral</ClosedNode>
          <ClosedNode>/sys_primegen - Structural C:|Users|zoltanp|Documents|HexCalc|Sys0800|sys0800.vhd/debouncer_sw - debouncer8channel - Behavioral</ClosedNode>
       </ClosedNodes>
       <SelectedItems>
-         <SelectedItem>sys0800 - Structural (C:/Users/zoltanp/Documents/HexCalc/sys0800/sys0800.vhd)</SelectedItem>
+         <SelectedItem>sys0800 - Structural (C:/Users/zoltanp/Documents/HexCalc/Sys0800/sys0800.vhd)</SelectedItem>
       </SelectedItems>
-      <ScrollbarPosition orientation="vertical" >21</ScrollbarPosition>
-      <ScrollbarPosition orientation="horizontal" >403</ScrollbarPosition>
-      <ViewHeaderState orientation="horizontal" >000000ff000000000000000100000001000000000000000000000000000000000202000000010000000100000064000002fe000000020000000000000000000000000200000064ffffffff000000810000000300000002000002fe0000000100000003000000000000000100000003</ViewHeaderState>
+      <ScrollbarPosition orientation="vertical" >5</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000020200000001000000010000006400000300000000020000000000000000000000000200000064ffffffff000000810000000300000002000003000000000100000003000000000000000100000003</ViewHeaderState>
       <UserChangedColumnWidths orientation="horizontal" >true</UserChangedColumnWidths>
-      <CurrentItem>sys0800 - Structural (C:/Users/zoltanp/Documents/HexCalc/sys0800/sys0800.vhd)</CurrentItem>
+      <CurrentItem>sys0800 - Structural (C:/Users/zoltanp/Documents/HexCalc/Sys0800/sys0800.vhd)</CurrentItem>
    </ItemView>
    <ItemView engineview="SynthesisOnly" sourcetype="" guiview="Process" >
       <ClosedNodes>
@@ -34,7 +36,7 @@
       </SelectedItems>
       <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
       <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
-      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000143000000010000000100000000000000000000000064ffffffff000000810000000000000001000001430000000100000000</ViewHeaderState>
+      <ViewHeaderState orientation="horizontal" >000000ff000000000000000100000001000000000000000000000000000000000000000000000000ec000000010000000100000000000000000000000064ffffffff000000810000000000000001000000ec0000000100000000</ViewHeaderState>
       <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
       <CurrentItem/>
    </ItemView>
@@ -43,13 +45,13 @@
          <ClosedNodesVersion>1</ClosedNodesVersion>
       </ClosedNodes>
       <SelectedItems>
-         <SelectedItem>C:\Users\zoltanp\Documents\HexCalc\sys0800\TMS0800\tms0800_package.vhd</SelectedItem>
+         <SelectedItem>C:\Users\zoltanp\Documents\HexCalc\Sys0800\mercury.ucf</SelectedItem>
       </SelectedItems>
       <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
-      <ScrollbarPosition orientation="horizontal" >391</ScrollbarPosition>
-      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000000000000010000000000000000000000000000000000000316000000040101000100000000000000000000000064ffffffff000000810000000000000004000001870000000100000000000000cf00000001000000000000006600000001000000000000005a0000000100000000</ViewHeaderState>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000000000000001000000000000000000000000000000000000035a000000040101000100000000000000000000000064ffffffff000000810000000000000004000001cb0000000100000000000000cf00000001000000000000006600000001000000000000005a0000000100000000</ViewHeaderState>
       <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
-      <CurrentItem>C:\Users\zoltanp\Documents\HexCalc\sys0800\TMS0800\tms0800_package.vhd</CurrentItem>
+      <CurrentItem>C:\Users\zoltanp\Documents\HexCalc\Sys0800\mercury.ucf</CurrentItem>
    </ItemView>
    <ItemView guiview="Library" >
       <ClosedNodes>
@@ -58,7 +60,7 @@
       <SelectedItems/>
       <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
       <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
-      <ViewHeaderState orientation="horizontal" >000000ff000000000000000100000000000000000100000000000000000000000000000000000000ed000000010001000100000000000000000000000064ffffffff000000810000000000000001000000ed0000000100000000</ViewHeaderState>
+      <ViewHeaderState orientation="horizontal" >000000ff000000000000000100000000000000000100000000000000000000000000000000000000f8000000010001000100000000000000000000000064ffffffff000000810000000000000001000000f80000000100000000</ViewHeaderState>
       <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
       <CurrentItem>work</CurrentItem>
    </ItemView>
@@ -72,13 +74,13 @@
          <ClosedNode>User Constraints</ClosedNode>
       </ClosedNodes>
       <SelectedItems>
-         <SelectedItem></SelectedItem>
+         <SelectedItem>Design Summary/Reports</SelectedItem>
       </SelectedItems>
-      <ScrollbarPosition orientation="vertical" >9</ScrollbarPosition>
+      <ScrollbarPosition orientation="vertical" >11</ScrollbarPosition>
       <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
-      <ViewHeaderState orientation="horizontal" >000000ff000000000000000100000001000000000000000000000000000000000000000000000000e7000000010000000100000000000000000000000064ffffffff000000810000000000000001000000e70000000100000000</ViewHeaderState>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000010000000000000000000000000000000000000000000000014d000000010000000100000000000000000000000064ffffffff0000008100000000000000010000014d0000000100000000</ViewHeaderState>
       <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
-      <CurrentItem></CurrentItem>
+      <CurrentItem>Design Summary/Reports</CurrentItem>
    </ItemView>
    <ItemView engineview="SynthesisOnly" sourcetype="DESUT_VHDL_PACKAGE_DECL" guiview="Process" >
       <ClosedNodes>
@@ -95,4 +97,18 @@
    </ItemView>
    <SourceProcessView>000000ff00000000000000020000011b0000011b01000000050100000002</SourceProcessView>
    <CurrentView>Implementation</CurrentView>
+   <ItemView engineview="SynthesisOnly" sourcetype="DESUT_UCF" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+         <ClosedNode>User Constraints</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem/>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000010000000000000000000000000000000000000000000000015e000000010000000100000000000000000000000064ffffffff0000008100000000000000010000015e0000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem/>
+   </ItemView>
 </Project>

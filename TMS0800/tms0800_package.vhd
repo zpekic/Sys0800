@@ -84,8 +84,8 @@ constant bit_invert: std_logic_vector(1 downto 0) 		:= "11";
 -- display / kbd sync
 constant nop: 		std_logic_vector(1 downto 0) 		:= "00";
 constant pulse:	std_logic_vector(1 downto 0) 		:= "01";
-constant turnoff: std_logic_vector(1 downto 0) 		:= "10";
-constant turnon: 	std_logic_vector(1 downto 0) 		:= "11";
+--constant turnoff: std_logic_vector(1 downto 0) 		:= "10";
+--constant turnon: 	std_logic_vector(1 downto 0) 		:= "11";
 
 -- 3 bit microinstruction fields
 -- destination selections
@@ -116,14 +116,14 @@ constant fun_adcbcd :std_logic_vector(2 downto 0) := "101";
 constant fun_sbchex :std_logic_vector(2 downto 0) := "110";
 constant fun_sbcbcd :std_logic_vector(2 downto 0) := "111";
 -- Cond flag reg functions
-constant cf_nop : 		std_logic_vector(2 downto 0) := O"0";
-constant cf_zero : 		std_logic_vector(2 downto 0) := O"1";
-constant cf_one : 		std_logic_vector(2 downto 0) := O"2";
-constant cf_cout : 		std_logic_vector(2 downto 0) := O"3";
-constant cf_or_af_and_mask :	std_logic_vector(2 downto 0) := O"4";
-constant cf_or_bf_and_mask :	std_logic_vector(2 downto 0) := O"5";
+constant cf_nop : 	std_logic_vector(2 downto 0) := O"0";
+constant cf_zero : 	std_logic_vector(2 downto 0) := O"1";
+constant cf_one : 	std_logic_vector(2 downto 0) := O"2";
+constant cf_cout : 	std_logic_vector(2 downto 0) := O"3";
+constant cf_or_af :	std_logic_vector(2 downto 0) := O"4";
+constant cf_or_bf :	std_logic_vector(2 downto 0) := O"5";
 constant cf_or_af_xor_bf :		std_logic_vector(2 downto 0) := O"6";
-constant cf_7 :			std_logic_vector(2 downto 0) := O"7";
+constant cf_7 :		std_logic_vector(2 downto 0) := O"7";
 
 -- 16 control unit branch conditions
 constant cond_false: 		integer := 15; 

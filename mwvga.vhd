@@ -1,0 +1,140 @@
+----------------------------------------------------------------------------------
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date:    17:47:42 05/11/2019 
+-- Design Name: 
+-- Module Name:    mwvga - Behavioral 
+-- Project Name: 
+-- Target Devices: 
+-- Tool versions: 
+-- Description: 
+--
+-- Dependencies: 
+--
+-- Revision: 
+-- Revision 0.01 - File Created
+-- Additional Comments: 
+--
+----------------------------------------------------------------------------------
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+use IEEE.NUMERIC_STD.ALL;
+
+-- Uncomment the following library declaration if instantiating
+-- any Xilinx primitives in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
+
+entity mwvga is
+    Port ( reset : in  STD_LOGIC;
+           clk : in  STD_LOGIC;
+           rgbBorder : in  STD_LOGIC_VECTOR (7 downto 0);
+           rgb : out  STD_LOGIC_VECTOR (7 downto 0);
+           hsync : out  STD_LOGIC;
+           vsync : out  STD_LOGIC;
+           hactive : buffer  STD_LOGIC;
+           vactive : buffer  STD_LOGIC;
+           x : buffer  STD_LOGIC_VECTOR (10 downto 0);
+           y : buffer  STD_LOGIC_VECTOR (10 downto 0));
+end mwvga;
+
+architecture Behavioral of mwvga is
+
+component chargen_rom is
+    Port ( a : in  STD_LOGIC_VECTOR (10 downto 0);
+           d : out  STD_LOGIC_VECTOR (7 downto 0));
+end component;
+
+signal color: std_logic_vector(7 downto 0);
+signal pattern: std_logic_vector(7 downto 0);
+signal hpulse, h, hfp: std_logic_vector(11 downto 0);
+signal vpulse, v, vfp: std_logic_vector(11 downto 0);
+signal h_clk: std_logic;
+signal v_clk: std_logic;
+signal active: std_logic;
+signal pixel: std_logic;
+
+begin
+
+hsync <= not hpulse(11);
+hactive <= hfp(11) and (not h(11));
+x <= h(10 downto 0);
+
+vsync <= not vpulse(11);
+vactive <= vfp(11) and (not v(11));
+y <= v(10 downto 0);
+
+active <= hactive and vactive;
+rgb <= rgbBorder when (active = '0') else color;
+--color <= v(7 downto 0) when (pixel = '1') else h(7 downto 0);
+color <= "11111111" when (pixel = '1') else "00000000";
+
+--pixel_clk: process(clk)
+--begin
+--	if (rising_edge(clk)) then
+--		h_clk <= not h_clk;
+--	end if;
+--end process;
+
+h_clk <= clk;
+h_drive: process(reset, h_clk)
+begin
+	if (reset = '1') then
+		hfp <= X"00F";
+	else
+		if (rising_edge(h_clk)) then
+			if (hfp = X"00F") then
+				hpulse <= X"FA0"; -- -96
+				h <= X"F70";		-- -(96 + 48)
+				hfp <= X"CF0";		-- 16 - 800
+			else
+				hpulse <= std_logic_vector(unsigned(hpulse) + 1);
+				h <= std_logic_vector(unsigned(h) + 1);
+				hfp <= std_logic_vector(unsigned(hfp) + 1);
+			end if;
+		end if;
+	end if;
+end process;
+
+v_clk <= hfp(11); -- generate pulse at the end of horizontal line
+v_drive: process(reset, v_clk)
+begin
+	if (reset = '1') then
+		vfp <= X"009";
+	else
+		if (rising_edge(v_clk)) then
+		if (vfp = X"009") then
+			vpulse <= X"FFE"; 	-- -2
+			v <= X"FDD";			-- -(2 + 33)
+			vfp <= X"DFD";			-- 10 - 525
+		else
+			vpulse <= std_logic_vector(unsigned(vpulse) + 1);
+			v <= std_logic_vector(unsigned(v) + 1);
+			vfp <= std_logic_vector(unsigned(vfp) + 1);
+		end if;
+		end if;
+	end if;
+end process;
+
+chargen: chargen_rom port map (
+		a(10 downto 3) => x(10 downto 3),
+		a(2 downto 0) => y(2 downto 0),
+		d => pattern
+	);
+	
+with x(2 downto 0) select
+	pixel <= pattern(7) when "000",
+				pattern(6) when "001",
+				pattern(5) when "010",
+				pattern(4) when "011",
+				pattern(3) when "100",
+				pattern(2) when "101",
+				pattern(1) when "110",
+				pattern(0) when "111";
+
+end Behavioral;
+

@@ -357,7 +357,7 @@ begin
 							-- reg_verb
 						 write(out_line, decode4(temp_mem(i)(27 downto 26), "", "reg[e, dst] <= reg / 2, ", "reg[e, dst] <= reg[e, dst] * 2, ", "reg[e, dst] <= alu_y, "));
 							-- flag_verb
-						 write(out_line, decode4(temp_mem(i)(25 downto 24), "", "flag[e, dst] <= 0; ", "flag[e, dst] <= 1; ", "flag[e, dst] <= !flag[e, dst]; "));
+						 write(out_line, decode4(temp_mem(i)(25 downto 24), "", "flag[e, dst] <= 0; ", "flag[e, dst] <= flag[e, af] ^ flag[e, bf]; ", "flag[e, dst] <= !flag[e, dst]; "));
 							-- ss_disable
 						 write(out_line, decode2(temp_mem(i)(23), "", "ss = off; "));
 							-- update_sam
@@ -439,14 +439,14 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_enabletrace, uc_label(TRACE), uc_label(NEXTI)),
 
 ----- BEGIN TRACER ROUTINE ------------------	
-		TRACE => 
+		TRACE =>
 			uc_tracechar('P'),
 		11 =>
 			uc_tracechar('C'),
 		12 =>
 			uc_tracechar('='),
 		13 =>
-			uc_tracedata(t_pc2),
+			uc_tracedata(t_pc2),	-- program counter
 		14 =>
 			uc_tracedata(t_pc1),
 		15 =>
@@ -459,7 +459,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		18 =>
 			uc_tracechar('='),
 		19 =>
-			uc_tracedata(t_instr2),
+			uc_tracedata(t_instr2), -- current instruction
 		20 =>
 			uc_tracedata(t_instr1),
 		21 =>
@@ -468,62 +468,65 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		22 =>
 			uc_tracechar(' '),
 		23 =>
+			uc_e(e_init) or
 			uc_tracechar('A'),
 		24 =>
-			uc_e(e_init) or
-			uc_tracechar('F'),
+			uc_e(e_ror) or 
+			uc_tracechar('='),
 		25 =>
-			uc_e(e_ror) or 
-			uc_tracechar('='),
+			uc_if(cond_e11, upc_next, uc_label(28)),
 		26 =>
-			uc_if(cond_e11, upc_next, uc_label(29)),
+			uc_tracedata(t_a), -- display a register
 		27 =>
-			uc_tracedata(t_af), -- display aflag register
+			uc_e(e_ror) or 
+			uc_goto(uc_label(25)),
+
 		28 =>
-			uc_e(e_ror) or 
-			uc_goto(uc_label(26)),
-
+			uc_tracechar(' '),
 		29 =>
-			uc_tracechar(' '),
-		30 =>
-			uc_tracechar('B'),
-		31 =>
 			uc_e(e_init) or
-			uc_tracechar('F'),
+			uc_tracechar('B'),
+		30 =>
+			uc_e(e_ror) or 
+			uc_tracechar('='),
+		31 =>
+			uc_if(cond_e11, upc_next, uc_label(34)),
 		32 =>
-			uc_e(e_ror) or 
-			uc_tracechar('='),
+			uc_tracedata(t_b), -- display b register
 		33 =>
-			uc_if(cond_e11, upc_next, uc_label(36)),
-		34 =>
-			uc_tracedata(t_bf), -- display bflag register
-		35 =>
 			uc_e(e_ror) or 
-			uc_goto(uc_label(33)),
+			uc_goto(uc_label(31)),
 
-		36 =>
+		34 =>
 			uc_tracechar(' '),
-		37 =>
+		35 =>
+			uc_e(e_init) or
 			uc_tracechar('C'),
-		38 =>
-			uc_tracechar('F'),
-		39 =>
+		36 =>
+			uc_e(e_ror) or 
 			uc_tracechar('='),
-		40 =>
-			uc_tracedata(t_cf), -- display cond register
+		37 =>
+			uc_if(cond_e11, upc_next, uc_label(40)),
+		38 =>
+			uc_tracedata(t_c), -- display c register
+		39 =>
+			uc_e(e_ror) or 
+			uc_goto(uc_label(37)),
 
-		41 =>
+		40 =>
 			uc_tracechar(' '),
+		41 =>
+			uc_tracechar('A'),
 		42 =>
 			uc_e(e_init) or
-			uc_tracechar('A'),
+			uc_tracechar('F'),
 		43 =>
 			uc_e(e_ror) or 
 			uc_tracechar('='),
 		44 =>
 			uc_if(cond_e11, upc_next, uc_label(47)),
 		45 =>
-			uc_tracedata(t_a), -- display a register
+			uc_tracedata(t_af), -- display aflag register
 		46 =>
 			uc_e(e_ror) or 
 			uc_goto(uc_label(44)),
@@ -531,34 +534,31 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		47 =>
 			uc_tracechar(' '),
 		48 =>
-			uc_e(e_init) or
 			uc_tracechar('B'),
 		49 =>
-			uc_e(e_ror) or 
-			uc_tracechar('='),
-		50 =>
-			uc_if(cond_e11, upc_next, uc_label(53)),
-		51 =>
-			uc_tracedata(t_b), -- display b register
-		52 =>
-			uc_e(e_ror) or 
-			uc_goto(uc_label(50)),
-
-		53 =>
-			uc_tracechar(' '),
-		54 =>
 			uc_e(e_init) or
-			uc_tracechar('C'),
-		55 =>
+			uc_tracechar('F'),
+		50 =>
 			uc_e(e_ror) or 
 			uc_tracechar('='),
-		56 =>
-			uc_if(cond_e11, upc_next, uc_label(59)),
-		57 =>
-			uc_tracedata(t_c), -- display c register
-		58 =>
+		51 =>
+			uc_if(cond_e11, upc_next, uc_label(54)),
+		52 =>
+			uc_tracedata(t_bf), -- display bflag register
+		53 =>
 			uc_e(e_ror) or 
-			uc_goto(uc_label(56)),
+			uc_goto(uc_label(51)),
+
+		54 =>
+			uc_tracechar(' '),
+		55 =>
+			uc_tracechar('C'),
+		56 =>
+			uc_tracechar('F'),
+		57 =>
+			uc_tracechar('='),
+		58 =>
+			uc_tracedata(t_cf), -- display cond register
 
 		59 =>
 			uc_goto(upc_next),
@@ -685,7 +685,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		91 =>
 			uc_ss(ss_off) or
-			uc_cond(cf_or_bf_and_mask),
+			uc_cond(cf_or_bf),
 		92 =>
 			uc_ss(ss_off) or
 			uc_e(e_rol) or
@@ -695,7 +695,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		94 =>
 			uc_ss(ss_off) or
-			uc_cond(cf_or_af_and_mask),
+			uc_cond(cf_or_af),
 		95 =>
 			uc_ss(ss_off) or
 			uc_e(e_rol) or
@@ -712,26 +712,21 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_cflag, uc_label(CONTINUE), uc_label(96)), -- bail if set, otherwise loop
 
 		99 => -- EXF
-			uc_dst(dst_nul) or		
+			uc_dst(dst_af) or		-- set af destination 1 clock ahead
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		100 =>
-			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_load) or	-- af <= af xor bf;
-			uc_dst(dst_af),
+			uc_dst(dst_bf),		-- set bf destination 1 clock ahead
 		101 =>
-			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_load) or -- bf <= af xor bf;
-			uc_dst(dst_bf),
+			uc_dst(dst_af),		-- set af destination 1 clock ahead
 		102 =>
-			uc_ss(ss_off) or
 			uc_sam(sam_update) or
-			uc_flag(bit_load) or -- af <= af xor bf;
-			uc_dst(dst_af),
+			uc_flag(bit_load),   -- af <= af xor bf;
 		103 =>
 			uc_dst(dst_nul) or
-			uc_ss(ss_off) or
 			uc_e(e_rol) or
 			uc_goto(uc_label(99)),
 			
@@ -844,6 +839,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		209 => -- WAITDK
 			uc_display(zero) or
 			uc_if(cond_dk, uc_label(JUMP), uc_label(FORK)), 
+			--uc_goto(uc_label(CONTINUE)),
 
 		210 => -- WAITNO
 			uc_if(cond_keystrobe, uc_label(JUMP), uc_label(FORK)), 
@@ -869,13 +865,11 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_e(e_rol) or
 			uc_dst(dst_bf) or
 			uc_goto(uc_label(64)),
-			--uc_goto(uc_label(CONTINUE)),
 
 		216 => -- ZFA
 			uc_e(e_rol) or
 			uc_dst(dst_af) or
 			uc_goto(uc_label(64)),
-			--uc_goto(uc_label(CONTINUE)),
 
 		217 => -- TFB
 			uc_e(e_rol) or
@@ -1101,10 +1095,10 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(ADCBCD)),  
 			
 		254 => -- free (note: this location can't be used as jump target because code is reserved for "fork")
-			uc_halt,
+			uc_goto(uc_label(CONTINUE)),
 
 		255 => -- free (note: this location can't be used as jump target because code is reserved for "repeat")
-			uc_halt,
+			uc_goto(uc_label(CONTINUE)),
 			
 		others => -- stop microcode (this should never happen!)
 			uc_halt

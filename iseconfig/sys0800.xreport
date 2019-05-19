@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <report-views version="2.0" >
  <header>
-  <DateModified>2019-04-04T23:27:47</DateModified>
+  <DateModified>2019-05-18T23:39:59</DateModified>
   <ModuleName>sys0800</ModuleName>
-  <SummaryTimeStamp>2019-04-04T23:17:32</SummaryTimeStamp>
+  <SummaryTimeStamp>2019-05-18T22:15:43</SummaryTimeStamp>
   <SavedFilePath>C:/Users/zoltanp/Documents/HexCalc/Sys0800/iseconfig/sys0800.xreport</SavedFilePath>
-  <ImplementationReportsDirectory>C:/Users/zoltanp/Documents/HexCalc/sys0800\</ImplementationReportsDirectory>
+  <ImplementationReportsDirectory>C:/Users/zoltanp/Documents/HexCalc/Sys0800\</ImplementationReportsDirectory>
   <DateInitialized>2019-03-14T23:50:46</DateInitialized>
   <EnableMessageFiltering>false</EnableMessageFiltering>
  </header>

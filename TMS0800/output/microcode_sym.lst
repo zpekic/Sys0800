@@ -45,77 +45,77 @@
 -- 
 16: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-17: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
+17: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
 -- 
-18: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+18: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-19: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+19: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 1C;
 -- 
-1A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 1D;
+1A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = a[e]; if(charsent) then goto 3F else repeat;
 -- 
-1B: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = aflag[e]; if(charsent) then goto 3F else repeat;
+1B: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 19;
 -- 
-1C: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 1A;
+1C: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-1D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+1D: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
 -- 
-1E: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
+1E: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-1F: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+1F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 22;
 -- 
-20: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+20: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = b[e]; if(charsent) then goto 3F else repeat;
 -- 
-21: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 24;
+21: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 1F;
 -- 
-22: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = bflag[e]; if(charsent) then goto 3F else repeat;
+22: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-23: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 21;
+23: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
 -- 
-24: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+24: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-25: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
+25: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 28;
 -- 
-26: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+26: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = c[e]; if(charsent) then goto 3F else repeat;
 -- 
-27: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+27: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 25;
 -- 
-28: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = cflag; if(charsent) then goto 3F else repeat;
+28: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-29: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+29: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
 -- 
-2A: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
+2A: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
 2B: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 2C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 2F;
 -- 
-2D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = a[e]; if(charsent) then goto 3F else repeat;
+2D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = aflag[e]; if(charsent) then goto 3F else repeat;
 -- 
 2E: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 2C;
 -- 
 2F: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-30: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
+30: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
 -- 
-31: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+31: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
-32: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 35;
+32: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-33: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = b[e]; if(charsent) then goto 3F else repeat;
+33: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 36;
 -- 
-34: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 32;
+34: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = bflag[e]; if(charsent) then goto 3F else repeat;
 -- 
-35: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+35: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 33;
 -- 
-36: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
+36: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-37: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+37: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
 -- 
-38: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 3B;
+38: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
-39: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = c[e]; if(charsent) then goto 3F else repeat;
+39: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-3A: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 38;
+3A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = cflag; if(charsent) then goto 3F else repeat;
 -- 
 3B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
@@ -197,15 +197,15 @@
 -- 
 62: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 60;
 -- 
-63: dst <= nul; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+63: dst <= aflag; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
-64: flag[e, dst] <= 1; ss = off; update; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; next;
+64: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= bflag; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-65: flag[e, dst] <= 1; ss = off; update; dst <= bflag; alu_y = 0; alu_sel <= alu_sel; next;
+65: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-66: flag[e, dst] <= 1; ss = off; update; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; next;
+66: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-67: e <= e * 2, ss = off; dst <= nul; alu_y = 0; alu_sel <= alu_sel; goto 63;
+67: e <= e * 2, dst <= nul; alu_y = 0; alu_sel <= alu_sel; goto 63;
 -- 
 68: dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; goto 09;
 -- 
@@ -507,6 +507,6 @@ FC: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 73;
 --ACKC 
 FD: e <= e * 2, dst <= c; cflag <= 0; alu_y = 0; alu_sel <= ck; goto 52;
 --??? 
-FE: -- halt
+FE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 09;
 --??? 
-FF: -- halt
+FF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 09;

@@ -33,7 +33,6 @@ use work.tms0800_package.all;
 entity tms0800 is
     Port ( reset : in  STD_LOGIC;
            clk_cpu : in  STD_LOGIC;
-           clk_du : in  STD_LOGIC;
            clk_txd : in  STD_LOGIC;
            enable_trace : in  STD_LOGIC;
            show_debug : in  STD_LOGIC;
@@ -182,7 +181,7 @@ signal tu_charsent: std_logic;
 signal reg_a, reg_b, reg_c: std_logic_vector(43 downto 0);
 signal flag_a: std_logic_vector(10 downto 0);
 signal flag_b: std_logic_vector(10 downto 0);
-signal cflag: std_logic := '1';	-- TODO remove value
+signal cflag: std_logic;
 
 -- flag xor for EXF ---------------------------
 signal af_xor_bf: std_logic_vector(10 downto 0);
@@ -230,12 +229,10 @@ alias tu_char:			std_logic_vector(7 downto 0) is u_code(7 downto 0);
 
 -- keyboard / display
 signal keystrobe, keypressed: std_logic;
-signal sync_on, sync_off, sync_pulse: std_logic;
+--signal sync_on, sync_off, sync_pulse: std_logic;
 
 -- clocks and sync
-signal clk_scan, clk_calc: std_logic;
---signal SyncMode: std_logic := '0';
---signal nSyncMode: std_logic := '1';
+signal clk_scan: std_logic;
 
 -- DEBUG only
 signal u_addr: std_logic_vector(7 downto 0);
@@ -260,7 +257,7 @@ du: displayunit port map
 
 tu: traceunit port map
 ( 
-	clk => clk_calc,
+	clk => clk_cpu,
 	clk_txd => clk_txd,
    reset => reset,
    char => tu_char,
@@ -277,19 +274,19 @@ tu: traceunit port map
 );
 			  
 -- Program counter and instruction -------------------------------------------------------
-update_pc: process(clk_calc, reset, pc_verb, instruction)
+update_pc: process(clk_cpu, reset, pc_verb, instruction)
 begin
 	if (reset = '1') then
 		pc <= (others => '0');
 	else
-		if (rising_edge(clk_calc)) then
+		if (rising_edge(clk_cpu)) then
 			case pc_verb is
 				when pc_clear =>
 					pc <= (others => '0');
-				when pc_next =>
-					pc <= std_logic_vector(unsigned(pc) + 1);
 				when pc_load => 
 					pc <= instruction(8 downto 0);
+				when pc_next =>
+					pc <= std_logic_vector(unsigned(pc) + 1);
 				when others =>
 					null;
 			end case;
@@ -311,6 +308,10 @@ program: rom512x12
 			data(10 downto 0) => instruction
 		);
 -----------------------------------------------------------------------------------------
+-- TEST -- execute each flag or register sequentially for testing purposes --------------
+--instruction <= "11" & (pc(4 downto 0) xor "11111") & "1111"; -- register
+--instruction <= "101" & (pc(3 downto 0) xor "1111") & "1111";	-- flag
+-----------------------------------------------------------------------------------------
 -- process to determine if any key pressed
 
 set_keystrobe: process(reset, clk_scan, digit10, ka, kb, kc, kd)
@@ -329,33 +330,9 @@ begin
 end process;
 
 -- display / keyboard sync ----------------------------
--- TODO: explain why needed
-
---sync_on 		<= '1' when (sync_verb = turnon) else '0';
---sync_off 	<= '1' when (sync_verb = turnoff) else '0';
-sync_pulse 	<= '0' when (sync_verb = pulse) else '1';
-
---cpu_freqmux: freqmux Port map ( 
---				reset => reset,
---				f0in => clk_cpu,
---				f1in => clk_du,
---				sel => syncMode,
---				fout => clk_calc
---			 );
---			 
---du_freqmux: freqmux Port map ( 
---				reset => reset,
---				f0in => clk_du,
---				f1in => sync_pulse,
---				sel => syncMode,
---				fout => clk_scan
---			 );
+clk_scan <= '0' when (sync_verb = pulse) else '1';
 			 
-clk_calc <= clk_cpu;
-clk_scan <= sync_pulse; --'1' when (u_addr = X"02") else '0';
-
---nSyncMode <= not (sync_on or syncMode);
---syncMode <= not (sync_off or reset or nSyncMode);
+--clk_scan <= sync_pulse; --'1' when (u_addr = X"02") else '0';
 
 --dbg_state <= ka & kb & kc & kd;
 dbg_state <= kb & kc & keystrobe & digit10;
@@ -363,7 +340,7 @@ dbg_state <= kb & kc & keystrobe & digit10;
 -------------------------------------------------------
 cu: controlunit port map 
 	( 
-		clk => clk_calc,
+		clk => clk_cpu,
       reset => reset,
       instruction => instruction(10 downto 4), 	-- don't care for the mask selector here
       condition(cond_false) => '0', 				-- hard-code "false" for condition 15 
@@ -413,7 +390,7 @@ begin
 	
 	-- af, bf flags are the same regardless of the position
 	af: sambit port map (
-		clk => clk_calc,
+		clk => clk_cpu,
 		sel => flag_verb,
 		nEnable => enable_af(i),
 		m => mask(i),
@@ -422,7 +399,7 @@ begin
 	);
 
 	bf: sambit port map (
-		clk => clk_calc,
+		clk => clk_cpu,
 		sel => flag_verb,
 		nEnable => enable_bf(i),
 		m => mask(i),
@@ -433,7 +410,7 @@ begin
 	-- rightmost digits a, b, c are connected to "0" for left << shift --
 	lsd: if (i = 0) generate
 		a: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_a(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => "0000",
@@ -445,7 +422,7 @@ begin
 				digit => reg_a(4 * i + 3 downto 4 * i));
 
 		b: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_b(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => "0000",
@@ -457,7 +434,7 @@ begin
 				digit => reg_b(4 * i + 3 downto 4 * i));
 
 		c: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_c(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => "0000",
@@ -473,7 +450,7 @@ begin
 	-- in the middle --
 	isd: if (i > 0 and i < 10) generate
 		a: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_a(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => reg_a(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -485,7 +462,7 @@ begin
 				digit => reg_a(4 * i + 3 downto 4 * i));
 
 		b: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_b(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => reg_b(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -497,7 +474,7 @@ begin
 				digit => reg_b(4 * i + 3 downto 4 * i));
 
 		c: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => reg_c(4 * (i + 1) + 3 downto 4 * (i + 1)),
 				in2 => reg_c(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -513,7 +490,7 @@ begin
 	-- leftmost digits a, b, c are connected to "0" for right >> shift --
 	msd: if (i = 10) generate
 		a: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => "0000",
 				in2 => reg_a(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -525,7 +502,7 @@ begin
 				digit => reg_a(4 * i + 3 downto 4 * i));
 
 		b: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => "0000",
 				in2 => reg_b(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -537,7 +514,7 @@ begin
 				digit => reg_b(4 * i + 3 downto 4 * i));
 
 		c: samdigit Port map ( 
-				clk => clk_calc,
+				clk => clk_cpu,
 				sel => reg_verb,
 				in1 => "0000",
 				in2 => reg_c(4 * (i - 1) + 3 downto 4 * (i - 1)),
@@ -614,32 +591,40 @@ alu: bcdalu port map
 	);
 
 -- cond (condition) register --------------------------------------
-update_cflag: process(clk_calc, cflag_verb)
+update_cflag: process(clk_cpu, cflag_verb)
 begin
-	if (rising_edge(clk_calc)) then
-		case cflag_verb is
-			when cf_zero =>
-				cflag <= '0';
-			when cf_one =>
-				cflag <= '1';
-			when cf_cout =>
-				cflag <= alu_cout;
-			when cf_or_af_and_mask =>
-				cflag <= cflag or (af_selected and mask_selected); -- used in TFA (test flag a)
-			when cf_or_bf_and_mask =>
-				cflag <= cflag or (bf_selected and mask_selected);	-- used in TFB (test flag b)
-			when cf_or_af_xor_bf =>
-				cflag <= cflag or (af_selected xor bf_selected);	-- used in CF (compare flags)
-			when others =>
-				null;
-		end case;
+	if (rising_edge(clk_cpu)) then
+			case cflag_verb is
+				when cf_zero =>
+					cflag <= '0';	-- clear regardless of the mask
+				when cf_one =>
+					cflag <= '1';	-- set regardless of the mask
+				when cf_cout =>
+					if (mask_selected = '1') then
+						cflag <= alu_cout; 
+					end if;
+				when cf_or_af =>
+					if (mask_selected = '1') then
+						cflag <= cflag or af_selected; -- used in TFA (test flag a)
+					end if;
+				when cf_or_bf =>
+					if (mask_selected = '1') then
+						cflag <= cflag or bf_selected; -- used in TFB (test flag b)
+					end if;
+				when cf_or_af_xor_bf =>
+					if (mask_selected = '1') then
+						cflag <= cflag or (af_selected xor bf_selected);	-- used in CF (compare flags)
+					end if;
+				when others =>
+					null;
+			end case;
 	end if;
 end process;
 
 -- SRC (source) register sets the ALU input multiplexor selection
-update_src: process(clk_calc, alu_inp)
+update_src: process(clk_cpu, alu_inp)
 begin
-	if (rising_edge(clk_calc)) then
+	if (rising_edge(clk_cpu)) then
 		if (alu_inp = src_nop) then
 			alu_sel <= alu_sel;	-- no change
 		else
@@ -649,9 +634,9 @@ begin
 end process;
 
 -- DST (destination) register - selects 0 or 1 out of 5 regs (A, B, C, AF, BF) ---
-update_dst: process(clk_calc, dst_verb)
+update_dst: process(clk_cpu, dst_verb)
 begin
-	if (rising_edge(clk_calc)) then
+	if (rising_edge(clk_cpu)) then
 		case dst_verb is
 			when dst_nul =>
 				e_reg <= "11111";	-- no register will be enabled for writing!
@@ -672,9 +657,9 @@ begin
 end process;
 
 -- E (enable) register - selects 1 out of 10 digits 9 .. 0 ------------------
-update_e: process(clk_calc, e_verb)
+update_e: process(clk_cpu, e_verb)
 begin
-	if (rising_edge(clk_calc)) then
+	if (rising_edge(clk_cpu)) then
 		case e_verb is
 			when e_init =>
 				e_dig <= "011111111111"; -- note that e(11) does not enable any register

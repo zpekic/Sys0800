@@ -68,7 +68,7 @@ entity sys0800 is
 				AN: out std_logic_vector(3 downto 0); 
 				DOT: out std_logic; 
 				-- 4 LEDs on Mercury board
-				LED: out std_logic_vector(3 downto 0);
+				--LED: out std_logic_vector(3 downto 0);
 				-- ADC interface
 				-- channel	input
 				-- 0			Audio Left
@@ -85,12 +85,31 @@ entity sys0800 is
 				--ADC_CSN: out std_logic;
 				--PS2_DATA: in std_logic;
 				--PS2_CLOCK: in std_logic;
+				--VGA interface
+				HSYNC: out std_logic;
+				VSYNC: out std_logic;
+				RED: out std_logic_vector(2 downto 0);
+				GRN: out std_logic_vector(2 downto 0);
+				BLU: out std_logic_vector(1 downto 0);
 				--PMOD interface
 				PMOD: inout std_logic_vector(7 downto 0)
           );
 end sys0800;
 
 architecture Structural of sys0800 is
+
+component mwvga is
+    Port ( reset : in  STD_LOGIC;
+           clk : in  STD_LOGIC;
+           rgbBorder : in  STD_LOGIC_VECTOR (7 downto 0);
+           rgb : out  STD_LOGIC_VECTOR (7 downto 0);
+           hsync : out  STD_LOGIC;
+           vsync : out  STD_LOGIC;
+           hactive : out  STD_LOGIC;
+           vactive : out  STD_LOGIC;
+           x : out  STD_LOGIC_VECTOR (10 downto 0);
+           y : out  STD_LOGIC_VECTOR (10 downto 0));
+end component;
 
 -------
 -- From: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=28278929#PS/2KeyboardInterface(VHDL)-CodeDownloads
@@ -179,7 +198,6 @@ end component;
 component tms0800 is
     Port ( reset : in  STD_LOGIC;
            clk_cpu : in  STD_LOGIC;
-           clk_du : in  STD_LOGIC;
            clk_txd : in  STD_LOGIC;
            enable_trace : in  STD_LOGIC;
            show_debug : in  STD_LOGIC;
@@ -226,7 +244,7 @@ alias freq1M5625: std_logic is fast(4); 	-- 1.5625MHz
 --		  fast(3) => freq3M125,
 --		  fast(2) => freq6M25,
 --		  fast(1) => freq12M5,
---		  fast(0) => freq25M
+alias freq25M: std_logic is fast(0);		-- 25MHz (suitable for 640x480 VGA)
 
 signal reset, nReset: std_logic;
 -- debounced inputs
@@ -287,7 +305,7 @@ begin
         clock0_in => freq2,
         clock1_in => freq1k,
         clock2_in => freq2k,
-        clock3_in => freq1M5625,
+        clock3_in => freq38400,
         clocksel => switch(6 downto 5),
         modesel => switch(7),
         singlestep => button(3),
@@ -315,10 +333,24 @@ begin
 		  signal_debounced(3 downto 0) => button(3 downto 0)
     );
 
+	vga: mwvga Port map ( 
+		reset => reset,
+		clk => freq25M, 
+		rgbBorder => switch,
+		rgb(2 downto 0) => RED,
+		rgb(5 downto 3) => GRN,
+		rgb(7 downto 6) => BLU,
+		hsync => HSYNC,
+		vsync => VSYNC,
+		hactive => open,
+		vactive => open,
+		x => open,
+		y => open
+	);
+
 	calculator: tms0800 Port map ( 
 		reset => reset,
 		clk_cpu => clk_cpu,
-		clk_du => clk_du,
 		clk_txd => clk_txd,
 		enable_trace => enable_trace,
 		show_debug => show_debug,
@@ -341,7 +373,7 @@ begin
 ss_mux: freqmux Port map ( 
 				reset => reset,
 				f0in => clk_ss,
-				f1in => freq1k,
+				f1in => freq2k,
 				sel => disableSs,
 				fout => clk_cpu
 			 );
@@ -357,7 +389,7 @@ A_TO_G(0) <= not segment(6);
 DOT <= not segment(7);
 
 AN <= debugAn when (show_debug = '1') else tmsAn;
-LED <= led_debug when (show_debug = '1') else led_digit8;
+--LED <= led_debug when (show_debug = '1') else led_digit8;
 
 tmsAn <= nDigit(7 downto 4) when (show_upper_digits = '1') else nDigit(3 downto 0);
 
