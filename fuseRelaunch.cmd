@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -o "C:/Users/zoltanp/Documents/HexCalc/Sys0800/bcdalu_tb_isim_beh.exe" -prj "C:/Users/zoltanp/Documents/HexCalc/Sys0800/bcdalu_tb_beh.prj" "work.bcdalu_tb" -mt "off" -v "1" 

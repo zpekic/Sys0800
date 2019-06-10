@@ -200,6 +200,7 @@ component tms0800 is
            clk_cpu : in  STD_LOGIC;
            clk_txd : in  STD_LOGIC;
            enable_trace : in  STD_LOGIC;
+           enable_breakpoint : in  STD_LOGIC;
            show_debug : in  STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR(7 downto 0);
@@ -304,8 +305,8 @@ begin
         reset => Reset,
         clock0_in => freq2,
         clock1_in => freq1k,
-        clock2_in => freq2k,
-        clock3_in => freq38400,
+        clock2_in => freq38400,
+        clock3_in => freq1M5625,
         clocksel => switch(6 downto 5),
         modesel => switch(7),
         singlestep => button(3),
@@ -353,6 +354,7 @@ begin
 		clk_cpu => clk_cpu,
 		clk_txd => clk_txd,
 		enable_trace => enable_trace,
+		enable_breakpoint => not switch(7),
 		show_debug => show_debug,
 		nDigit => nDigit,
 		segment => segment,

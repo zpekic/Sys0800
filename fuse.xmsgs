@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IMPORTANT: This is an internal file that has been generated
+     by the Xilinx ISE software.  Any direct editing or
+     changes made to this file may result in unpredictable
+     behavior or data corruption.  It is strongly advised that
+     users do not edit the contents of this file. -->
+<messages>
+<msg type="info" file="Simulator" num="958" delta="unknown" >Library Mapping: Sourcing library mapping file &quot;<arg fmt="%s" index="1">C:/Xilinx/14.7/ISE_DS/ISE/vhdl/hdp/nt/xilinxsim.ini</arg>&quot;
+</msg>
+
+<msg type="info" file="Simulator" num="958" delta="unknown" >Library Mapping: Sourcing library mapping file &quot;<arg fmt="%s" index="1">xilinxsim.ini</arg>&quot;
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="746" delta="unknown" >"N:/P.20131013/rtf/vhdl/src/ieee/numeric_std.vhd" Line 878: Range is empty (null range)
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="746" delta="unknown" >"N:/P.20131013/rtf/vhdl/src/ieee/numeric_std.vhd" Line 879: Range is empty (null range)
+</msg>
+
+</messages>
+
