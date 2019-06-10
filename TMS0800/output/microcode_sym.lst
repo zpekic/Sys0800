@@ -3,13 +3,13 @@
 -- 
 01: pc <= 0, dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-02: e <= 011111111111, dst <= nul; sync = pulse; alu_y = 0; alu_sel <= alu_sel; fork;
+02: e <= 011111111111, dst <= nul; sync = pulse; alu_y = 0; alu_sel <= alu_sel; if(breakpoint) then repeat else fork;
 -- 
-03: pc <= pc + 1, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 02;
+03: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 05;
 -- 
 04: dst <= nul; cflag <= 1; alu_y = 0; alu_sel <= alu_sel; if(enabletrace) then goto 0A else goto 03;
 -- 
-05: -- halt
+05: pc <= pc + 1, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 02;
 -- 
 06: pc <= @(instruction), dst <= nul; cflag <= 1; alu_y = 0; alu_sel <= alu_sel; goto 02;
 -- 
@@ -219,9 +219,9 @@
 -- 
 6D: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
-6E: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = sbcbcd(alu_sel); alu_sel <= alu_sel; next;
+6E: reg[e, dst] <= alu_y, update; dst <= dst; cflag <= alu_cout; alu_y = sbcbcd(alu_sel); alu_sel <= alu_sel; next;
 -- 
-6F: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 6D;
+6F: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 6D;
 -- 
 70: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 68;
 -- 

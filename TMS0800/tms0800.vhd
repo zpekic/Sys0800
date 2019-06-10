@@ -35,6 +35,7 @@ entity tms0800 is
            clk_cpu : in  STD_LOGIC;
            clk_txd : in  STD_LOGIC;
            enable_trace : in  STD_LOGIC;
+			  enable_breakpoint: in STD_LOGIC;
            show_debug : in  STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR(7 downto 0);
@@ -207,7 +208,6 @@ signal enable_bf: std_logic_vector(10 downto 0);
 signal alu_y: std_logic_vector(3 downto 0);
 signal alu_cout: std_logic;
 
-
 -- microinstruction
 signal u_code: std_logic_vector(31 downto 0);
 -- microinstruction fields, byte 3
@@ -236,6 +236,7 @@ signal clk_scan: std_logic;
 
 -- DEBUG only
 signal u_addr: std_logic_vector(7 downto 0);
+signal breakpoint: std_logic;
 
 begin
 
@@ -245,7 +246,7 @@ du: displayunit port map
 		reset => reset,
 		a => reg_a(43 downto 8),
 		debug(15 downto 0) => pc(7 downto 0) & u_addr,
-		debug(31 downto 16) => ps2, --X"000" & kd & kc & kb & ka,
+		debug(31 downto 16) => "000" & cflag & "000" & alu_cout & alu_y & '0' & alu_fun, --ps2, --X"000" & kd & kc & kb & ka,
 		dp_pos => reg_a(3 downto 0),
 		show_debug => show_debug,
 		nDigit => nDigit,
@@ -338,6 +339,8 @@ clk_scan <= '0' when (sync_verb = pulse) else '1';
 dbg_state <= kb & kc & keystrobe & digit10;
 
 -------------------------------------------------------
+breakpoint <= enable_breakpoint when (pc = "001001101") else '0'; -- break at "PLSKEY"
+
 cu: controlunit port map 
 	( 
 		clk => clk_cpu,
@@ -357,7 +360,7 @@ cu: controlunit port map
       condition(cond_dk) => '1',						-- as if DisplayKey is stuck == display always on
       condition(cond_3) => '0',
       condition(cond_2) => '0',
-      condition(cond_1) => '0',
+      condition(cond_breakpoint) => breakpoint,
       condition(cond_true) => '1', -- hard-code "true" for condition 0
 		u_code => u_code,
 		-- debug only
@@ -407,8 +410,8 @@ begin
 		flag => flag_b(i)
 	);
 	
-	-- rightmost digits a, b, c are connected to "0" for left << shift --
-	lsd: if (i = 0) generate
+	-- rightmost digits a, b, c of mantissa or exponent are connected to "0" for left << shift --
+	lsd: if ((i = 0) or (i = 2)) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
@@ -447,8 +450,8 @@ begin
 
 	end generate;
 
-	-- in the middle --
-	isd: if (i > 0 and i < 10) generate
+	-- in the middle of mantissa --
+	isd: if ((i > 2) and (i < 10)) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
@@ -487,8 +490,8 @@ begin
 
 	end generate;
 
-	-- leftmost digits a, b, c are connected to "0" for right >> shift --
-	msd: if (i = 10) generate
+	-- leftmost digits of mantissa or exponent of a, b, c are connected to "0" for right >> shift --
+	msd: if ((i = 1) or (i = 10)) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
