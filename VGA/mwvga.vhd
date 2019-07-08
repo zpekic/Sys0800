@@ -35,13 +35,14 @@ entity mwvga is
            clk : in  STD_LOGIC;
            rgbBorder : in  STD_LOGIC_VECTOR (7 downto 0);
 			  din: in STD_LOGIC_VECTOR (7 downto 0);
-           rgb : out  STD_LOGIC_VECTOR (7 downto 0);
-           hsync : out  STD_LOGIC;
-           vsync : out  STD_LOGIC;
            hactive : buffer  STD_LOGIC;
            vactive : buffer  STD_LOGIC;
            x : out  STD_LOGIC_VECTOR (7 downto 0);
-           y : out  STD_LOGIC_VECTOR (7 downto 0));
+           y : out  STD_LOGIC_VECTOR (7 downto 0);
+			  -- VGA connections
+           rgb : out  STD_LOGIC_VECTOR (7 downto 0);
+           hsync : out  STD_LOGIC;
+           vsync : out  STD_LOGIC);
 end mwvga;
 
 architecture Behavioral of mwvga is

@@ -40,9 +40,8 @@ entity clock_divider is
 end clock_divider;
 
 architecture rtl of clock_divider is
-	constant max_slowcount: integer := (CLK_FREQ / 2048); -- prescale to generate "even" frequencies
-	constant max_baudcount: integer := (CLK_FREQ / 38400); -- prescale to generate "baudrate" frequencies
-	--constant max_baud57k6: integer := (CLK_FREQ / 57600);
+	constant max_slowcount: integer := (CLK_FREQ / (2 * 2048)); -- prescale to generate "even" frequencies
+	constant max_baudcount: integer := (CLK_FREQ / (2 * 38400)); -- prescale to generate "baudrate" frequencies
 	signal scount: integer range 0 to max_slowcount := 0; 
 	signal bcount: integer range 0 to max_baudcount := 0; 
 	signal slow_cnt: unsigned(11 downto 0);

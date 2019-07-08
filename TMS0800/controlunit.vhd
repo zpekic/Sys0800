@@ -58,7 +58,6 @@ end component;
 signal u_pc, u_ra, u_next: std_logic_vector(7 downto 0);
 signal u_condition: std_logic;
 
---signal u_instruction: std_logic_vector(51 downto 0);
 -- driving internal sequencer signals
 signal u_if	 :std_logic_vector(3 downto 0);
 signal u_then :std_logic_vector(7 downto 0);
@@ -66,9 +65,7 @@ signal u_else :std_logic_vector(7 downto 0);
 
 begin
 
---u_instruction <= microcode(to_integer(unsigned(u_pc)));
 -- driving external signals
---u_code <= u_instruction(31 downto 0);
 u_addr <= u_pc;
 
 mc: microcode

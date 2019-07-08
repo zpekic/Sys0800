@@ -54,5 +54,18 @@ begin
 				(e(0) or x(0 + i));
 end generate;
 
+--with e select
+--	y <=	x(43 downto 40) when "01111111111",
+--			x(39 downto 36) when "10111111111",
+--			x(35 downto 32) when "11011111111",
+--			x(31 downto 28) when "11101111111",
+--			x(27 downto 24) when "11110111111",
+--			x(23 downto 20) when "11111011111",
+--			x(19 downto 16) when "11111101111",
+--			x(15 downto 12) when "11111110111",
+--			x(11 downto  8) when "11111111011",
+--			x( 7 downto  4) when "11111111101",
+--			x( 3 downto  0) when "11111111110",
+--			"0000" when others;
 end Behavioral;
 

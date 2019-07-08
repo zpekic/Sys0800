@@ -47,6 +47,7 @@ architecture Behavioral of samdigit is
 
 signal in_l, in_r: std_logic_vector(3 downto 0);
 signal val: std_logic_vector(3 downto 0) := X"9"; -- TODO remove value
+--signal effectiveSel: std_logic_vector(1 downto 0);
 
 begin
 
@@ -54,9 +55,11 @@ in_l <= in1 when (mleft = '1') else "0000";
 in_r <= in2 when (mright = '1') else "0000";
 digit <= val;
 
-y_update: process(clk, nEnable, sel, m, in_l, in_r)
+--effectiveSel <= sel when (m = '1' and nEnable = '0') else bcd_nop;
+
+y_update: process(clk, sel, m, nEnable, in_l, in_r)
 begin
-	if (nEnable = '0' and m = '1') then
+	if (m = '1' and nEnable = '0') then
 		if (rising_edge(clk)) then
 			case sel is
 				when bcd_fromleft =>
@@ -66,10 +69,11 @@ begin
 				when bcd_fromalu =>
 					val <= in3;
 				when others =>
-					null;
+					val <= val;
 			end case;
 		end if;
 	end if;
 end process;
+
 end Behavioral;
 

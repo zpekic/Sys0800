@@ -47,6 +47,7 @@ constant CLEAR: integer := 1;
 constant FORK: integer := 2;
 constant NEXTI: integer := 3;
 constant CONTINUECS: integer := 4;
+constant CONTINUECC: integer := 5;
 constant JUMPCS: integer := 6;
 constant JUMPCC: integer := 7;
 constant JUMP: integer := 8;
@@ -393,8 +394,8 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_pc(pc_clear),
 			
 		CLEAR =>  -- output clear character (note: this location can't be used as jump target as reserved for "return")
-			--uc_setchar(char_CLEAR) or
-			--uc_if(cond_charsent, uc_label(CLEARTXD), upc_repeat) or
+			uc_setchar(char_CLEAR) or
+			uc_if(cond_charsent, uc_label(CLEARTXD), upc_repeat) or
 			uc_pc(pc_clear),
 			
 		FORK => 	-- FORK
@@ -405,9 +406,9 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_breakpoint, upc_repeat, upc_fork), -- stay here until breakpoint cleared
 			
 		NEXTI =>  -- NEXT INSTRUCTION
-			--uc_pc(pc_next) or 
-			--uc_goto(uc_label(FORK)),
-			uc_goto(uc_label(5)),
+			uc_pc(pc_next) or 
+			uc_goto(uc_label(FORK)),
+			--uc_goto(uc_label(5)),
 
 		-- continue with cond flag set
 		CONTINUECS =>
@@ -415,10 +416,11 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_dst(dst_nul) or
 			uc_if(cond_enabletrace, uc_label(TRACE), uc_label(NEXTI)),
 
-		-- intermediary for nexti
-		5 =>
-			uc_pc(pc_next) or 
-			uc_goto(uc_label(FORK)),
+		-- continue with cond flag cleared
+		CONTINUECC =>
+			uc_cond(cf_zero) or
+			uc_dst(dst_nul) or
+			uc_if(cond_enabletrace, uc_label(TRACE), uc_label(NEXTI)),
 			
 		-- jump taken, set cond flag
 		JUMPCS =>
@@ -473,12 +475,12 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_tracedata(t_instr0),
 
 		22 =>
+			uc_e(e_init) or
 			uc_tracechar(' '),
 		23 =>
-			uc_e(e_init) or
+			uc_e(e_ror) or 
 			uc_tracechar('A'),
 		24 =>
-			uc_e(e_ror) or 
 			uc_tracechar('='),
 		25 =>
 			uc_if(cond_e11, upc_next, uc_label(28)),
@@ -489,12 +491,12 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(25)),
 
 		28 =>
+			uc_e(e_init) or
 			uc_tracechar(' '),
 		29 =>
-			uc_e(e_init) or
+			uc_e(e_ror) or 
 			uc_tracechar('B'),
 		30 =>
-			uc_e(e_ror) or 
 			uc_tracechar('='),
 		31 =>
 			uc_if(cond_e11, upc_next, uc_label(34)),
@@ -505,12 +507,12 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(31)),
 
 		34 =>
+			uc_e(e_init) or
 			uc_tracechar(' '),
 		35 =>
-			uc_e(e_init) or
+			uc_e(e_ror) or 
 			uc_tracechar('C'),
 		36 =>
-			uc_e(e_ror) or 
 			uc_tracechar('='),
 		37 =>
 			uc_if(cond_e11, upc_next, uc_label(40)),
@@ -521,14 +523,14 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(37)),
 
 		40 =>
+			uc_e(e_init) or
 			uc_tracechar(' '),
 		41 =>
 			uc_tracechar('A'),
 		42 =>
-			uc_e(e_init) or
+			uc_e(e_ror) or 
 			uc_tracechar('F'),
 		43 =>
-			uc_e(e_ror) or 
 			uc_tracechar('='),
 		44 =>
 			uc_if(cond_e11, upc_next, uc_label(47)),
@@ -539,14 +541,14 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(44)),
 
 		47 =>
+			uc_e(e_init) or
 			uc_tracechar(' '),
 		48 =>
 			uc_tracechar('B'),
 		49 =>
-			uc_e(e_init) or
+			uc_e(e_ror) or 
 			uc_tracechar('F'),
 		50 =>
-			uc_e(e_ror) or 
 			uc_tracechar('='),
 		51 =>
 			uc_if(cond_e11, upc_next, uc_label(54)),
@@ -825,19 +827,19 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 
 		-- jump if condition reset (0)
 		128|129|130|131|132|133|134|135|136|137|138|139|140|141|142|143|144|145|146|147|148|149|150|151|152|153|154|155|156|157|158|159 =>
-			uc_if(cond_cflag, uc_label(CONTINUE), uc_label(JUMPCC)),
+			uc_if(cond_cflag, uc_label(CONTINUECC), uc_label(JUMPCC)),
 
 		-- jump if condition set (1)
 		160|161|162|163|164|165|166|167|168|169|170|171|172|173|174|175|176|177|178|179|180|181|182|183|184|185|186|187|188|189|190|191 =>
-			uc_if(cond_cflag, uc_label(JUMPCC), uc_label(CONTINUE)),
+			uc_if(cond_cflag, uc_label(JUMPCC), uc_label(CONTINUECC)),
 		
 		-- jump on KO
 		192|193|194|195|196|197|198|199 =>
-			uc_if(cond_ko, uc_label(CONTINUE), uc_label(JUMPCC)), -- KO is low active
+			uc_if(cond_ko, uc_label(CONTINUECC), uc_label(JUMPCC)), -- KO is low active
 
 		-- jump on KP
 		200|201|202|203|204|205|206|207 =>
-			uc_if(cond_kp, uc_label(CONTINUE), uc_label(JUMPCC)), -- KP is low active
+			uc_if(cond_kp, uc_label(CONTINUECC), uc_label(JUMPCC)), -- KP is low active
 			
 		-- FLAG INSTRUCTIONS --
 		208 => -- NOP16
@@ -1122,6 +1124,8 @@ begin
 end init_microcode;
 
 constant mc: rom256x52 := init_microcode(lst_filename);
+--attribute rom_style : string;
+--attribute rom_style of mc : signal is "block";
 
 begin
 

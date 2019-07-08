@@ -9,25 +9,46 @@ use IEEE.numeric_std.all;
 
 package tms0800_package is
 
---type t_sevenseg is std_logic_vector(7 downto 0);
+subtype t_7seg is std_logic_vector(7 downto 0);
+type bytemask is array (0 to 15) of std_logic_vector(7 downto 0);
 
-constant pattern0: std_logic_vector(7 downto 0) := "00111111";   --0
-constant pattern1: std_logic_vector(7 downto 0) := "00000110";   --1
-constant pattern2: std_logic_vector(7 downto 0) := "01011011";   --2
-constant pattern3: std_logic_vector(7 downto 0) := "01001111";   --3
-constant pattern4: std_logic_vector(7 downto 0) := "01100110";   --4
-constant pattern5: std_logic_vector(7 downto 0) := "01101101";   --5
-constant pattern6: std_logic_vector(7 downto 0) := "01111101";   --6
-constant pattern7: std_logic_vector(7 downto 0) := "00000111";   --7
-constant pattern8: std_logic_vector(7 downto 0) := "01111111";   --8
-constant pattern9: std_logic_vector(7 downto 0) := "01101111";   --9
-constant pattern_minus: std_logic_vector(7 downto 0) := "01000000";   --(show minus sign)
-constant pattern_blank: std_logic_vector(7 downto 0) := "00000000";
+constant pattern0: t_7seg := "00111111";   --0
+constant pattern1: t_7seg  := "00000110";   --1
+constant pattern2: t_7seg  := "01011011";   --2
+constant pattern3: t_7seg  := "01001111";   --3
+constant pattern4: t_7seg  := "01100110";   --4
+constant pattern5: t_7seg  := "01101101";   --5
+constant pattern6: t_7seg  := "01111101";   --6
+constant pattern7: t_7seg  := "00000111";   --7
+constant pattern8: t_7seg  := "01111111";   --8
+constant pattern9: t_7seg  := "01101111";   --9
+constant pattern_minus: t_7seg  := "01000000";   --(show minus sign)
+constant pattern_blank: t_7seg  := "00000000";
 
 constant char_NULL: std_logic_vector(7 downto 0) := X"00";
 constant char_CLEAR: std_logic_vector(7 downto 0) := X"01";
+constant char_HOME: std_logic_vector(7 downto 0) := X"02";
 constant char_CR: std_logic_vector(7 downto 0) := X"0D";
 constant char_LF: std_logic_vector(7 downto 0) := X"0A";
+
+constant decode4to8: bytemask :=(
+"00000000", -- 0 disabled
+"00000000",
+"00000000",
+"00000000",
+"00000000",
+"00000000",
+"00000000",
+"00000000",	-- 7 disabled
+"00000001", -- 0 enabled
+"00000010",
+"00000100",
+"00001000",
+"00010000",
+"00100000",
+"01000000",
+"10000000"	-- 7 enabled
+);
 
 -- selections for tracer unit
 constant t_af : 		std_logic_vector(3 downto 0) := "0000";
@@ -59,6 +80,16 @@ constant sam_update : std_logic := '1';
 -- display
 constant zero: std_logic := '0';	-- TODO: does nothing, beside being a lame name
 constant one: std_logic := '1';	-- TODO: does nothing, beside being a lame name
+
+-- basic colors (BBGGGRRR)
+constant color8_black : std_logic_vector(7 downto 0) := "00000000"; 
+constant color8_red	 : std_logic_vector(7 downto 0) := "00000111"; 
+constant color8_green : std_logic_vector(7 downto 0) := "00111000"; 
+constant color8_yellow: std_logic_vector(7 downto 0) := "00111111"; 
+constant color8_blue	 : std_logic_vector(7 downto 0) := "11000000"; 
+constant color8_purple: std_logic_vector(7 downto 0) := "11000111"; 
+constant color8_cyan	 : std_logic_vector(7 downto 0) := "11111000"; 
+constant color8_white : std_logic_vector(7 downto 0) := "11111111"; 
 
 -- 2 bit microinstruction fields
 -- program counter

@@ -31,22 +31,23 @@ use IEEE.NUMERIC_STD.ALL;
 use work.tms0800_package.all;
 
 entity tms0800 is
-    Port ( reset : in  STD_LOGIC;
+    Port ( -- present in original
+			  reset : in  STD_LOGIC;
            clk_cpu : in  STD_LOGIC;
-           clk_txd : in  STD_LOGIC;
-           enable_trace : in  STD_LOGIC;
-			  enable_breakpoint: in STD_LOGIC;
-           show_debug : in  STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR(7 downto 0);
            ka : in  STD_LOGIC;
            kb : in  STD_LOGIC;
            kc : in  STD_LOGIC;
            kd : in  STD_LOGIC;
-			  trace_txd: out STD_LOGIC;
-			  trace_rxd: in STD_LOGIC;
-			  disableSingleStep: out STD_LOGIC;
+			  -- debug, trace additions
 			  ps2: in STD_LOGIC_VECTOR(15 downto 0); -- TODO: remove!
+           trace_enable : in  STD_LOGIC;
+			  trace_ascii: out STD_LOGIC_VECTOR(7 downto 0);
+			  trace_ready: in STD_LOGIC;
+			  breakpoint_enable: in STD_LOGIC;
+			  singlestep_disable: out STD_LOGIC;
+           dbg_show : in  STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
 end tms0800;
@@ -56,32 +57,16 @@ architecture Behavioral of tms0800 is
 component displayunit is
     Port ( clk : in  STD_LOGIC;
 			  reset: in STD_LOGIC;
-           a : in  STD_LOGIC_VECTOR (35 downto 0);
+           reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
            debug : in  STD_LOGIC_VECTOR (31 downto 0);
            dp_pos : in  STD_LOGIC_VECTOR(3 downto 0);
            show_debug : in  STD_LOGIC;
+			  show_error: in STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
 			  digit10: out STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
-end component;
-
-component traceunit is
-    Port ( clk : in  STD_LOGIC;
-			  clk_txd: in STD_LOGIC;
-           reset : in  STD_LOGIC;
-           char : in  STD_LOGIC_VECTOR(7 downto 0);
-           pc : in  STD_LOGIC_VECTOR (8 downto 0);
-           instruction : in  STD_LOGIC_VECTOR (11 downto 0);
-			  a : in STD_LOGIC_VECTOR(3 downto 0);
-			  b : in STD_LOGIC_VECTOR(3 downto 0);
-			  c : in STD_LOGIC_VECTOR(3 downto 0);
-			  af : in  STD_LOGIC;
-			  bf : in  STD_LOGIC;
-			  cf : in  STD_LOGIC;
-           char_sent : out  STD_LOGIC;
-           txd : out  STD_LOGIC);
 end component;
 
 component rom512x12 is
@@ -115,7 +100,7 @@ component samdigit is
            mleft : in  STD_LOGIC;
            m : in  STD_LOGIC;
            mright : in  STD_LOGIC;
-           digit : buffer STD_LOGIC_VECTOR(3 downto 0));
+           digit : out STD_LOGIC_VECTOR(3 downto 0));
 end component;
 
 component sambit is
@@ -153,6 +138,26 @@ component freqmux is
            fout : out  STD_LOGIC);
 end component;
 
+type hex2ascii is array (0 to 15) of std_logic_vector(7 downto 0);
+constant h2a: hex2ascii :=(
+	std_logic_vector(to_unsigned(character'pos('0'), 8)),
+	std_logic_vector(to_unsigned(character'pos('1'), 8)),
+	std_logic_vector(to_unsigned(character'pos('2'), 8)),
+	std_logic_vector(to_unsigned(character'pos('3'), 8)),
+	std_logic_vector(to_unsigned(character'pos('4'), 8)),
+	std_logic_vector(to_unsigned(character'pos('5'), 8)),
+	std_logic_vector(to_unsigned(character'pos('6'), 8)),
+	std_logic_vector(to_unsigned(character'pos('7'), 8)),
+	std_logic_vector(to_unsigned(character'pos('8'), 8)),
+	std_logic_vector(to_unsigned(character'pos('9'), 8)),
+	std_logic_vector(to_unsigned(character'pos('A'), 8)),
+	std_logic_vector(to_unsigned(character'pos('B'), 8)),
+	std_logic_vector(to_unsigned(character'pos('C'), 8)),
+	std_logic_vector(to_unsigned(character'pos('D'), 8)),
+	std_logic_vector(to_unsigned(character'pos('E'), 8)),
+	std_logic_vector(to_unsigned(character'pos('F'), 8))
+	);
+	
 type masktable is array (0 to 15) of std_logic_vector(43 downto 0);
 constant km: masktable :=(
     X"FFFFFFFFFF7", -- M0 	=	F0/DPT7
@@ -176,8 +181,6 @@ constant km: masktable :=(
 signal mask: std_logic_vector(10 downto 0);
 signal k, km_current: std_logic_vector(43 downto 0);
 
-signal tu_charsent: std_logic;
-
 -- Main data registers -------------------------
 signal reg_a, reg_b, reg_c: std_logic_vector(43 downto 0);
 signal flag_a: std_logic_vector(10 downto 0);
@@ -192,10 +195,17 @@ signal a_selected, b_selected, c_selected, k_selected: std_logic_vector(3 downto
 signal af_selected, bf_selected: std_logic;
 signal mask_selected: std_logic;
 signal digit10: std_logic;
+signal hex: std_logic_vector(3 downto 0);
+
+-- instruction being executed
+signal instruction: std_logic_vector(11 downto 0); -- 11 bit instruction (+ 1 bit breakpoint)
+alias i_breakpoint: std_logic is instruction(11);
+alias i_class_and_opcode: std_logic_vector(6 downto 0) is instruction(10 downto 4);
+alias i_jumpaddress: std_logic_vector(8 downto 0) is instruction(8 downto 0);
+alias i_mask: std_logic_vector(3 downto 0) is instruction(3 downto 0);
 
 -- Other internal registers --------------------
 signal pc: std_logic_vector(8 downto 0); -- 9 bit program counter
-signal instruction: std_logic_vector(10 downto 0); -- 11 bit instruction
 signal e_dig: std_logic_vector(11 downto 0); -- 12 bit enable register (usually only 1 hot bit to enable digit position registers)
 signal e_reg: std_logic_vector(4 downto 0); -- 5 bit enable register for A, B, C, AF, BF
 signal alu_sel: std_logic_vector(2 downto 0); -- make ALU selection "sticky" until changed
@@ -229,7 +239,6 @@ alias tu_char:			std_logic_vector(7 downto 0) is u_code(7 downto 0);
 
 -- keyboard / display
 signal keystrobe, keypressed: std_logic;
---signal sync_on, sync_off, sync_pulse: std_logic;
 
 -- clocks and sync
 signal clk_scan: std_logic;
@@ -244,34 +253,18 @@ du: displayunit port map
 (
 		clk => clk_scan,
 		reset => reset,
-		a => reg_a(43 downto 8),
+		reg_a => reg_a(43 downto 8),
 		debug(15 downto 0) => pc(7 downto 0) & u_addr,
-		debug(31 downto 16) => "000" & cflag & "000" & alu_cout & alu_y & '0' & alu_fun, --ps2, --X"000" & kd & kc & kb & ka,
+		--debug(31 downto 16) => "000" & cflag & "000" & alu_cout & alu_y & '0' & alu_fun, --ps2, --X"000" & kd & kc & kb & ka,
+		debug(31 downto 16) => ps2,
 		dp_pos => reg_a(3 downto 0),
-		show_debug => show_debug,
+		show_debug => dbg_show,
+		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero)
 		nDigit => nDigit,
 		segment => segment,
 		digit10 => digit10,
 		dbg_select => dbg_select,
 		dbg_state => open --dbg_state
-);
-
-tu: traceunit port map
-( 
-	clk => clk_cpu,
-	clk_txd => clk_txd,
-   reset => reset,
-   char => tu_char,
-   pc => pc, 
-   instruction => '0' & instruction,
-	a => a_selected,
-	b => b_selected,
-	c => c_selected,
-	af => af_selected,
-	bf => bf_selected,
-	cf => cflag,
-   char_sent => tu_charsent,
-   txd => trace_txd
 );
 			  
 -- Program counter and instruction -------------------------------------------------------
@@ -285,11 +278,11 @@ begin
 				when pc_clear =>
 					pc <= (others => '0');
 				when pc_load => 
-					pc <= instruction(8 downto 0);
+					pc <= i_jumpaddress;
 				when pc_next =>
 					pc <= std_logic_vector(unsigned(pc) + 1);
 				when others =>
-					null;
+					pc <= pc;
 			end case;
 		end if;
 	end if;
@@ -305,16 +298,10 @@ program: rom512x12
 		port map
 		(
 			address => pc,
-			data(11) => open,
-			data(10 downto 0) => instruction
+			data => instruction
 		);
------------------------------------------------------------------------------------------
--- TEST -- execute each flag or register sequentially for testing purposes --------------
---instruction <= "11" & (pc(4 downto 0) xor "11111") & "1111"; -- register
---instruction <= "101" & (pc(3 downto 0) xor "1111") & "1111";	-- flag
------------------------------------------------------------------------------------------
--- process to determine if any key pressed
 
+-- process to determine if any key pressed
 set_keystrobe: process(reset, clk_scan, digit10, ka, kb, kc, kd)
 begin
 	if (reset = '1') then
@@ -333,22 +320,21 @@ end process;
 -- display / keyboard sync ----------------------------
 clk_scan <= '0' when (sync_verb = pulse) else '1';
 			 
---clk_scan <= sync_pulse; --'1' when (u_addr = X"02") else '0';
-
 --dbg_state <= ka & kb & kc & kd;
 dbg_state <= kb & kc & keystrobe & digit10;
 
 -------------------------------------------------------
-breakpoint <= enable_breakpoint when (pc = "001001101") else '0'; -- break at "PLSKEY"
+--breakpoint <= breakpoint_enable when (pc = "001001101") else '0'; -- break at "PLSKEY"
+breakpoint <= breakpoint_enable and i_breakpoint; -- break whenever instruction bit 11 is set!
 
 cu: controlunit port map 
 	( 
 		clk => clk_cpu,
       reset => reset,
-      instruction => instruction(10 downto 4), 	-- don't care for the mask selector here
+      instruction => i_class_and_opcode,		 	-- don't care for the mask selector here
       condition(cond_false) => '0', 				-- hard-code "false" for condition 15 
-      condition(cond_charsent) => tu_charsent,
-      condition(cond_enabletrace) => enable_trace,
+      condition(cond_charsent) => trace_ready,	-- from external tracer circuit(s)
+      condition(cond_enabletrace) => trace_enable,
       condition(cond_cflag) => cflag,
       condition(cond_e11) => e_dig(11),			-- e register is at starting bit (== no digits are enabled)
       condition(cond_kp) => ka,						-- not used, should be '1' (inactive)
@@ -371,10 +357,10 @@ cu: controlunit port map
 af_xor_bf <= flag_a xor flag_b;
 
 -- hint to clock logic outside (disable single step when in trace code, or when microcode does it)
-disableSingleStep <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
+singlestep_disable <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
 
 -- get encoded K (constants) and M (masks) from lookup ROM --		
-km_current <= km(to_integer(unsigned(instruction(3 downto 0))));
+km_current <= km(to_integer(unsigned(i_mask)));
 
 -- enables for each digit or bit in the SAM are at "intersection" of digit and register enabled line --
 -- when the "master write" from microcode is 1. Note these are all active 0 																		  --
@@ -619,7 +605,7 @@ begin
 						cflag <= cflag or (af_selected xor bf_selected);	-- used in CF (compare flags)
 					end if;
 				when others =>
-					null;
+					cflag <= cflag;
 			end case;
 	end if;
 end process;
@@ -654,7 +640,7 @@ begin
 			when dst_bf =>
 				e_reg <= "11110";
 			when others => 		-- no change in destination register
-				null;
+				e_reg <= e_reg;
 		end case;
 	end if;
 end process;
@@ -671,10 +657,41 @@ begin
 			when e_ror =>
 				e_dig <= e_dig(0) & e_dig(11 downto 1); -- rotate right (11 >> 0), used for driving tracer
 			when others =>
-				null;
+				e_dig <= e_dig;
 		end case;
 	end if;
 end process;
+
+-- drive the tracer output, on which a string of ASCII characters appear
+--select hex/bcd character to display
+with tu_char(3 downto 0) select
+	hex <= 	"000" & af_selected 					when t_af,
+				"000" & bf_selected 					when t_bf,
+				"000" & cflag 							when t_cf,
+				a_selected 								when t_a,
+				b_selected								when t_b,
+				c_selected 								when t_c,
+				instruction(3 downto 0) 			when t_instr0,
+				instruction(7 downto 4) 			when t_instr1,
+				'0' & instruction(10 downto 8)	when t_instr2,
+				pc(3 downto 0) 						when t_pc0,
+				pc(7 downto 4) 						when t_pc1,
+				"000" & pc(8) 							when t_pc2,
+				"0000" when others;
+	
+-- if input >127 then it is from mux, otherwise transmit directly
+setTrace: process(clk_cpu, tu_char, hex)
+begin
+	if (falling_edge(clk_cpu)) then
+		if (tu_char(7) = '0') then
+			-- ASCII code to be transmitted is directly in the microcode
+			trace_ascii <= tu_char;
+		else
+			-- convert 4-bit HEX to 8-bit ASCII
+			trace_ascii <= h2a(to_integer(unsigned(hex)));
+		end if;
+	end if;
+end process;	
 
 end Behavioral;
 

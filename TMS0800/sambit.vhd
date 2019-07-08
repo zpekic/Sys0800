@@ -42,12 +42,14 @@ end sambit;
 architecture Behavioral of sambit is
 
 signal fbit: std_logic := '1'; -- TODO remove value
+--signal effectiveSel: std_logic_vector(1 downto 0);
 
 begin
 
 flag <= fbit;
+--effectiveSel <= sel when (nEnable = '0' and m = '1') else bit_nop;
 
-flag_update: process(clk, nEnable, sel, m, inp)
+flag_update: process(clk, sel, nEnable, m, inp)
 begin
 	if (nEnable = '0' and m = '1') then
 		if (rising_edge(clk)) then
@@ -59,7 +61,7 @@ begin
 				when bit_invert =>
 					fbit <= not fbit;
 				when others =>
-					null;
+					fbit <= fbit;
 			end case;
 		end if;
 	end if;

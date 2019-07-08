@@ -1,15 +1,15 @@
 -- RESET
 00: pc <= 0, dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-01: pc <= 0, dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
+01: pc <= 0, dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = CLEAR; if(charsent) then goto 3F else repeat;
 -- 
 02: e <= 011111111111, dst <= nul; sync = pulse; alu_y = 0; alu_sel <= alu_sel; if(breakpoint) then repeat else fork;
 -- 
-03: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 05;
+03: pc <= pc + 1, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 02;
 -- 
 04: dst <= nul; cflag <= 1; alu_y = 0; alu_sel <= alu_sel; if(enabletrace) then goto 0A else goto 03;
 -- 
-05: pc <= pc + 1, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 02;
+05: dst <= nul; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; if(enabletrace) then goto 0A else goto 03;
 -- 
 06: pc <= @(instruction), dst <= nul; cflag <= 1; alu_y = 0; alu_sel <= alu_sel; goto 02;
 -- 
@@ -43,11 +43,11 @@
 -- 
 15: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = instr0; if(charsent) then goto 3F else repeat;
 -- 
-16: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+16: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-17: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
+17: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
 -- 
-18: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+18: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 19: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 1C;
 -- 
@@ -55,11 +55,11 @@
 -- 
 1B: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 19;
 -- 
-1C: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+1C: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-1D: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
+1D: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
 -- 
-1E: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+1E: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 1F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 22;
 -- 
@@ -67,11 +67,11 @@
 -- 
 21: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 1F;
 -- 
-22: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+22: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-23: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
+23: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'C'; if(charsent) then goto 3F else repeat;
 -- 
-24: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+24: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 25: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 28;
 -- 
@@ -79,13 +79,13 @@
 -- 
 27: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 25;
 -- 
-28: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+28: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
 29: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
 -- 
-2A: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+2A: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
-2B: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+2B: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 2C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 2F;
 -- 
@@ -93,13 +93,13 @@
 -- 
 2E: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 2C;
 -- 
-2F: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
+2F: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
 30: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
 -- 
-31: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+31: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
-32: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
+32: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
 33: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 36;
 -- 
@@ -255,165 +255,165 @@
 -- 
 7F: dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; if(digit10) then goto 09 else goto 02;
 --BC0 
-80: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+80: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-81: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+81: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-82: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+82: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-83: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+83: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-84: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+84: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-85: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+85: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-86: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+86: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-87: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+87: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-88: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+88: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-89: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+89: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-8F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+8F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-90: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+90: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-91: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+91: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-92: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+92: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-93: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+93: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-94: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+94: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-95: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+95: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-96: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+96: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-97: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+97: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-98: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+98: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-99: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+99: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-9F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 07;
+9F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC1 
-A0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-A9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+A9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-AF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+AF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-B9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+B9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 09;
+BF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BKO 
-C0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C1: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C2: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C3: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C4: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C5: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C6: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
-C7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 09 else goto 07;
+C7: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKP 
-C8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+C8: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-C9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+C9: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CA: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CB: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CC: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --BKP 
-CF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 09 else goto 07;
+CF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kp) then goto 05 else goto 07;
 --NOP16 
 D0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 09;
 --WAITDK 

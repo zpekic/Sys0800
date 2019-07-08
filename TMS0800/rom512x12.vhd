@@ -130,8 +130,19 @@ begin
 								word_binvalue := word_binvalue(10 downto 0) & char2logic(char);
 								--report "init_wordmemory(" & integer'image(hex_cnt) & "): binvalue=" & get_string(to_integer(unsigned(word_binvalue)), 3, 16) & " in line " & integer'image(line_cnt) severity note; 
 								temp_mem(to_integer(unsigned(word_binaddress))) := word_binvalue;
-								report "init_wordmemory(" & integer'image(hex_cnt) & "): temp_mem(" & integer'image(to_integer(unsigned(word_binaddress))) & ") := " & integer'image(to_integer(unsigned(temp_mem(to_integer(unsigned(word_binaddress)))))) severity note;
-								exit;
+								report "init_wordmemory(" & integer'image(hex_cnt) & "): temp_mem(" & integer'image(to_integer(unsigned(word_binaddress))) & ") := " & integer'image(to_integer(unsigned(word_binvalue))) severity note;
+							when others =>
+								null;
+						end case;
+
+					when '*' => -- indicate breakpoint if at the right column, otherwise ignore
+						case hex_cnt is
+							when 0 to 29 =>								
+								assert false report "init_wordmemory(" & integer'image(hex_cnt) & "): unexpected char '" & char & "' in line " & integer'image(line_cnt) severity note; 
+							when 30 =>
+								temp_mem(to_integer(unsigned(word_binaddress))) := X"800" or word_binvalue;
+								report "init_wordmemory(" & integer'image(hex_cnt) & "): breakpoint set at " & integer'image(to_integer(unsigned(word_binaddress))) severity note;
+								exit; -- no need to parse this line further
 							when others =>
 								null;
 						end case;
@@ -217,18 +228,12 @@ begin
 	return temp_mem;
 end init_wordmemory;
 	
-
-constant data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, NOP30);
-
---constant data_from_inline: rom_array :=
---(
---	0 => NOP16, 
---	others => NOP30
---);
+signal data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, NOP30);
+attribute rom_style : string;
+attribute rom_style of data_from_file : signal is "block";
 
 begin
 	data <= data_from_file(to_integer(unsigned(a9)));
---	data <= data_from_inline(to_integer(unsigned(a9)));
 
 end Behavioral;
 

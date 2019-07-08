@@ -37,6 +37,11 @@
 //xxx	ID3	EQU	F9
 //xxx	FD4	EQU	F10
 
+//-------------------
+// Note for TMS0800 implementation: putting * right after the instruction code column sets a hardware breakpoint:
+// microcode will stop - put SW7 into on position and press BTN3 for single step through microcode for that instruction.
+// Breakpoint mode will exit as soon as instruction pointer is no longer at breakpoint instruction.
+//-------------------
 
 // _____________________________________________________________________________________________________
 //
@@ -127,7 +132,7 @@
 0 0100 1010	004A	00 00000 0111		BET	S ; Update display
 0 0100 1011	004B	10 10011 0001	.DIVKEY	SFB	OP2 ; DIV = flags II, III
 0 0100 1100	004C	10 10011 0000	.MLTKEY	SFB	OP1 ; MULT = flags I, III
-0 0100 1101	004D	10 10011 0010	.PLSKEY	SFB	OP3 ; PLUS = flag III
+0 0100 1101	004D	10 10011 0010	.PLSKEY	SFB	OP3 ; PLUS = flag III 
 0 0100 1110	004E	10 11010 0011		TFA	F3 ; Clear display flag
 0 0100 1111	004F	01 00101 0010		BIO	KS1
 0 0101 0000	0050	10 11010 0100		TFA	F4 ; Equal flag
