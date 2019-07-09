@@ -6,7 +6,22 @@ https://patents.google.com/patent/US3934233
 
 The project has been inspired by the cool JScript / HTML simulation by Ken Shirriff: http://files.righto.com/calculator/TI_calculator_simulator.html
 
-The implementation is not replicating 100% the internals of the original chip, as random MOS logic does not translate too well into FPGA RTL. Instead, a classic micro-coded approach was used, with a 256 * 48 control store. The upper part of this store (0x80 - 0xFF) maps directly into TMS0800 instructions (e.g. entry point for ZFA (0x58X) is at 0xD8), and the lower part is used to implement the instructions. Also included in the "TMS0800" is a tracer circuit which allows observation of internal state after each instruction (by connecting to any 38400bps 8N1 terminal). This is also driven by microcode routine, locations 0x0A to 0x3F. Here is the startup sequence:
+The implementation is not replicating 100% the internals of the original chip, as random MOS logic does not translate too well into FPGA RTL. Instead, a classic micro-coded approach was used, with a 256 * 48 control store. The upper part of this store (0x80 - 0xFF) maps directly into TMS0800 instructions (e.g. entry point for ZFA (0x58X) is at 0xD8), and the lower part is used to implement the instructions. 
+
+The "TMS0800" is wrapped into additional logic to allow it to be used as a calculator - for that the I/O devices on Mercury base-board need to be adapted to the calculator core. This includes:
+
+- 1 serial tracer on PMOD running at 38400 baud, 8N1
+- 1 parallel tracer on VGA (therefore a simple text-based VGA controller and 4k of video character RAM + chargen ROM are present too)
+- 1 PmodKYPD keyboard on PMOD
+- 1 (partial) debug keyboard
+
+Some of these are mutually exclusive as they use single PMOD. Setting all switches to off and pressing button 3 starts calculator with:
+
+- PmodKYPD on PMOD
+- 38.4 kHz (similar frequency to original)
+- VGA and serial tracers inactive (former can be activated by turning switch 0 on)
+
+Either tracer circuit allows observation of internal state after each instruction. This is also driven by microcode routine, locations 0x0A to 0x3F. Here is the startup sequence:
 
 PC=000 I=58F A=9999999999 B=9999999999 C=9999999999 AF=0000000000 BF=1111111111 CF=0
 PC=001 I=57F A=9999999999 B=9999999999 C=9999999999 AF=0000000000 BF=0000000000 CF=0
