@@ -23,6 +23,7 @@ Some of these are mutually exclusive as they use single PMOD. Setting all switch
 
 Either tracer circuit allows observation of internal state after each instruction. This is also driven by microcode routine, locations 0x0A to 0x3F. Here is the startup sequence:
 
+<pre>
 PC=000 I=58F A=9999999999 B=9999999999 C=9999999999 AF=0000000000 BF=1111111111 CF=0
 PC=001 I=57F A=9999999999 B=9999999999 C=9999999999 AF=0000000000 BF=0000000000 CF=0
 PC=002 I=70F A=0000000000 B=9999999999 C=9999999999 AF=0000000000 BF=0000000000 CF=0
@@ -48,6 +49,7 @@ PC=026 I=221 A=0000000000 B=0000000200 C=0000000000 AF=0000000000 BF=0000000000 
 PC=027 I=66E A=0000000000 B=0000000200 C=0000000000 AF=0000000000 BF=0000000000 CF=0
 PC=028 I=72E A=0000000000 B=0000000200 C=0000000000 AF=0000000000 BF=0000000000 CF=0
 PC=029 I=578 A=0000000000 B=0000000200 C=0000000000 AF=0000000000 BF=0000000000 CF=0
+</pre>
 
 at this point TMS0800 is executing the following instruction:
 X"02A" => X"527" --WAITNO F9      .0.........
@@ -55,6 +57,7 @@ which means it is waiting in the loop for any key press.
 
 Typical instructions takes at least 14 cycles (11 to go over digit plus 2 fork and next overhead), but the display and keyboard scan is driven at the fork microinstruction which happens only once per instruction execution, therefore from outside the basic timing relationship between execution and scan is preserved. This is visible in this sequence:
 
+<pre>
 ...
   '112          SYNC         ',
   '113          BKO    CLEAR  ; Clear key pressed?',
@@ -67,6 +70,7 @@ Typical instructions takes at least 14 cycles (11 to go over digit plus 2 fork a
   '120          BKO    DPTKEY ; Decimal point key pressed?',
   '121          BKO    ZERKEY ; Zero key pressed?',
 ...  
+</pre>
 
 SYNC is done when the keyboard scan is about to start a new round. After that each instruction advances the scan to next key, so a single sense line controlling the BKO instruction can branch to the right routine. 
 
