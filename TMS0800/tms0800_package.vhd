@@ -51,18 +51,22 @@ constant decode4to8: bytemask :=(
 );
 
 -- selections for tracer unit
-constant t_af : 		std_logic_vector(3 downto 0) := "0000";
-constant t_bf : 		std_logic_vector(3 downto 0) := "0001";
-constant t_cf : 		std_logic_vector(3 downto 0) := "0010";
-constant t_a : 		std_logic_vector(3 downto 0) := "0011";
-constant t_b : 		std_logic_vector(3 downto 0) := "0100";
-constant t_c : 		std_logic_vector(3 downto 0) := "0101";
-constant t_instr0 : 	std_logic_vector(3 downto 0) := "0110";
-constant t_instr1 : 	std_logic_vector(3 downto 0) := "0111";
-constant t_instr2 : 	std_logic_vector(3 downto 0) := "1000";
-constant t_pc0: 		std_logic_vector(3 downto 0) := "1001";
-constant t_pc1: 		std_logic_vector(3 downto 0) := "1010";
-constant t_pc2: 		std_logic_vector(3 downto 0) := "1011";
+constant t_af : 		std_logic_vector(3 downto 0) := X"0";
+constant t_bf : 		std_logic_vector(3 downto 0) := X"1";
+constant t_cf : 		std_logic_vector(3 downto 0) := X"2";
+constant t_a : 		std_logic_vector(3 downto 0) := X"3";
+constant t_b : 		std_logic_vector(3 downto 0) := X"4";
+constant t_c : 		std_logic_vector(3 downto 0) := X"5";
+constant t_instr0 : 	std_logic_vector(3 downto 0) := X"6";
+constant t_instr1 : 	std_logic_vector(3 downto 0) := X"7";
+constant t_instr2 : 	std_logic_vector(3 downto 0) := X"8";
+constant t_pc0: 		std_logic_vector(3 downto 0) := X"9";
+constant t_pc1: 		std_logic_vector(3 downto 0) := X"A";
+constant t_pc2: 		std_logic_vector(3 downto 0) := X"B";
+constant t_dbgin0: 	std_logic_vector(3 downto 0) := X"C";
+constant t_dbgin1: 	std_logic_vector(3 downto 0) := X"D";
+constant t_dbgin2: 	std_logic_vector(3 downto 0) := X"E";
+constant t_dbgin3: 	std_logic_vector(3 downto 0) := X"F";
 
 -- special microcode "goto" codes (all others will be jump to that location)
 constant upc_next:   std_logic_vector(7 downto 0) := X"00"; -- means we can't jump to location 0!

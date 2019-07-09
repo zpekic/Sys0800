@@ -41,12 +41,12 @@ entity tms0800 is
            kc : in  STD_LOGIC;
            kd : in  STD_LOGIC;
 			  -- debug, trace additions
-			  ps2: in STD_LOGIC_VECTOR(15 downto 0); -- TODO: remove!
            trace_enable : in  STD_LOGIC;
 			  trace_ascii: out STD_LOGIC_VECTOR(7 downto 0);
 			  trace_ready: in STD_LOGIC;
 			  breakpoint_enable: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
+			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
            dbg_show : in  STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
@@ -255,8 +255,7 @@ du: displayunit port map
 		reset => reset,
 		reg_a => reg_a(43 downto 8),
 		debug(15 downto 0) => pc(7 downto 0) & u_addr,
-		--debug(31 downto 16) => "000" & cflag & "000" & alu_cout & alu_y & '0' & alu_fun, --ps2, --X"000" & kd & kc & kb & ka,
-		debug(31 downto 16) => ps2,
+		debug(31 downto 16) => dbg_in,
 		dp_pos => reg_a(3 downto 0),
 		show_debug => dbg_show,
 		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero)
@@ -677,7 +676,10 @@ with tu_char(3 downto 0) select
 				pc(3 downto 0) 						when t_pc0,
 				pc(7 downto 4) 						when t_pc1,
 				"000" & pc(8) 							when t_pc2,
-				"0000" when others;
+				dbg_in(3 downto 0)					when t_dbgin0,
+				dbg_in(7 downto 4)					when t_dbgin1,
+				dbg_in(11 downto 8)					when t_dbgin2,
+				dbg_in(15 downto 12)					when t_dbgin3;
 	
 -- if input >127 then it is from mux, otherwise transmit directly
 setTrace: process(clk_cpu, tu_char, hex)
