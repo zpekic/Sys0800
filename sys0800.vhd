@@ -265,12 +265,12 @@ component tms0800 is
            kc : in  STD_LOGIC;
            kd : in  STD_LOGIC;
 			  -- debug, trace additions
-			  ps2: in STD_LOGIC_VECTOR(15 downto 0); -- TODO: remove!
            trace_enable : in  STD_LOGIC;
 			  trace_ascii: out STD_LOGIC_VECTOR(7 downto 0);
 			  trace_ready: in STD_LOGIC;
 			  breakpoint_enable: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
+			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
            dbg_show : in  STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
 			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
@@ -377,15 +377,23 @@ begin
 	-- Single step by each clock cycle, slow or fast
 	ss: clocksinglestepper port map (
         reset => Reset,
-        clock0_in => freq2,
+        clock0_in => freq38400,
         clock1_in => freq1k,
-        clock2_in => freq38400,
+        clock2_in => freq2,
         clock3_in => freq1M5625,
         clocksel => switch(6 downto 5),
         modesel => switch(7),
         singlestep => button(3),
         clock_out => clk_ss
     );
+
+--ss_mux: freqmux Port map ( 
+--				reset => reset,
+--				f0in => clk_ss,
+--				f1in => freq38400,
+--				sel => disableSs,
+--				fout => clk_cpu
+--			 );
 
 --debounced: block is
 --begin
@@ -447,7 +455,7 @@ end block;
 		maxcol => 80	 
 	)
 	port map (
-		clk => CLK,
+		clk => freq25M,
 		we => ram_we,
 		x => ram_x,
 		y => ram_y,
@@ -467,7 +475,7 @@ end block;
 		maxcol => 80)	 
 	port map ( 
 		reset => reset,
-		clk => CLK,
+		clk => freq25M,
 		char => trace_ascii,
 		char_sent => v_tracedone,
 		busy_in => controller_busy,
@@ -490,7 +498,6 @@ end block;
 
 trace_enable <= enable_serialtrace or switch(0);
 trace_done <= v_tracedone and s_tracedone when (enable_serialtrace = '1') else v_tracedone;
---trace_done <= v_tracedone;-- and s_tracedone;
 ------------------------------------
 	
 	calculator: tms0800 Port map ( 
@@ -502,27 +509,17 @@ trace_done <= v_tracedone and s_tracedone when (enable_serialtrace = '1') else v
 		kb => kb,
 		kc => kc,
 		kd => kd,
-		--ps2 => X"FFFF" xor ("111" & nDigit & kd & kc & kb & ka), --ps2_scan,
-		--ps2 => X"FFFF" xor (X"FF" & kbd_row & kbd_col),
-		ps2 => X"FFFF" xor (k_divide & k_equals & k_dot & k_clear & k_multiply & k_cerror & k_8 & k_7 & k_minus & k_6 & k_5 & k_4 & k_plus & k_3 & k_2 & k_1),
 		trace_enable => trace_enable,
 		trace_ascii => trace_ascii, 
 		trace_ready => trace_done,
 		breakpoint_enable => not switch(7),
 		singlestep_disable => disableSs,
+		dbg_in => X"FFFF" xor (k_divide & k_equals & k_dot & k_clear & k_multiply & k_cerror & k_8 & k_7 & k_minus & k_6 & k_5 & k_4 & k_plus & k_3 & k_2 & k_1),
 		dbg_show => show_debug,
 		dbg_select(2) => show_upper_digits,
 		dbg_select(1 downto 0) => slow(4 downto 3), 
 		dbg_state => led_debug
 	);
-
---ss_mux: freqmux Port map ( 
---				reset => reset,
---				f0in => clk_ss,
---				f1in => freq38400,
---				sel => disableSs,
---				fout => clk_cpu
---			 );
 
 -- Adapt TMS0800 9 digit common cathode display to 4 digit + 4 leds display
 A_TO_G(6) <= not segment(0);
