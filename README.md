@@ -74,3 +74,7 @@ Typical instructions takes at least 14 cycles (11 to go over digit plus 2 fork a
 
 SYNC is done when the keyboard scan is about to start a new round. After that each instruction advances the scan to next key, so a single sense line controlling the BKO instruction can branch to the right routine. 
 
+Amateurish demo video here: https://www.youtube.com/watch?v=eGSghj2WLYs&t=49s
+
+VGA debug display is seen in the video. The VGA controller is a simple 640 * 480 25MHz pixel clock one, generating 80 * 50 text display (this fits and utilizes 4k RAM well). There is also a built-in 8 * 8 character generator ROM. If debug is turned on, calculator branches into a trace routine (locations 0x0a - 0x3f) that sends values of all registers to the tracer circuit. This is essentially a "printer" to video RAM, so for example all printable ASCII codes after written to row, col (cursor pos) increment col, and row if col > 79. Scrolling is implemented too, when row > 49. Essentially same microcontrol unit is used like in TMS0800 but with much smaller microcode store. 
+
