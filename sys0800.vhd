@@ -42,7 +42,7 @@ entity sys0800 is
 				USR_BTN: in std_logic; 
 				-- Switches on baseboard
 				-- SW(0) -- (debug key input when PMOD is used for serial trace output, otherwise turn on VGA tracing)
-				-- SW(1) -- (debug key input when PMOD is used for serial trace output)  
+				-- SW(1) -- (debug key input when PMOD is used for serial trace output, otherwise turn on Sinclair Scientific mode)  
 				-- SW(2) -- (debug key input when PMOD is used for serial trace output)
 				-- SW(3) -- PMOD mode
 				-- 	0 -- use it for keyboard (https://reference.digilentinc.com/reference/pmod/pmodkypd/reference-manual)
@@ -128,6 +128,7 @@ component xyram is
            we : in  STD_LOGIC;
            x : in  STD_LOGIC_VECTOR (7 downto 0);
            y : in  STD_LOGIC_VECTOR (7 downto 0);
+           mode : in  STD_LOGIC_VECTOR (7 downto 0);
            din : in  STD_LOGIC_VECTOR (7 downto 0);
            dout : out  STD_LOGIC_VECTOR (7 downto 0));
 end component;
@@ -141,7 +142,7 @@ component vio0800_microcode is
            char_sent : out STD_LOGIC;
 			  busy_in: in STD_LOGIC;
 			  busy_out: out STD_LOGIC;
-			  we : buffer STD_LOGIC;
+			  we : out STD_LOGIC;
 			  din: in STD_LOGIC_VECTOR(7 downto 0);
 			  dout: buffer STD_LOGIC_VECTOR(7 downto 0);
 			  x: out STD_LOGIC_VECTOR(7 downto 0);
@@ -264,11 +265,14 @@ component tms0800 is
            kb : in  STD_LOGIC;
            kc : in  STD_LOGIC;
            kd : in  STD_LOGIC;
+			  -- mode
+			  sinclair: in STD_LOGIC;
 			  -- debug, trace additions
            trace_enable : in  STD_LOGIC;
 			  trace_ascii: out STD_LOGIC_VECTOR(7 downto 0);
 			  trace_ready: in STD_LOGIC;
-			  breakpoint_enable: in STD_LOGIC;
+			  breakpoint_req: out STD_LOGIC;
+			  breakpoint_ack: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
 			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
            dbg_show : in  STD_LOGIC;
@@ -302,16 +306,16 @@ alias freq2k: std_logic is slow(0);  	-- 2048Hz
 --		  baud(1) => freq19200,
 alias freq38400: std_logic is baud(0);		-- 38400
 alias freq1M5625: std_logic is fast(4); 	-- 1.5625MHz
---		  fast(3) => freq3M125,
---		  fast(2) => freq6M25,
---		  fast(1) => freq12M5,
+alias freq3M125: std_logic is fast(3);
+alias freq6M25: std_logic is fast(2);
+alias freq12M5: std_logic is fast(1);
 alias freq25M: std_logic is fast(0);		-- 25MHz (suitable for 640x480 VGA)
 
-signal reset, nReset: std_logic;
+signal reset, nReset, reset_0800: std_logic;
 -- debounced inputs
 signal switch: std_logic_vector(7 downto 0);
 alias show_debug: std_logic is switch(4);
-alias enable_serialtrace: std_logic is switch(3);
+--alias enable_serialtrace: std_logic is switch(3);
 
 signal button: std_logic_vector(3 downto 0);
 alias show_upper_digits: std_logic is button(0);
@@ -322,23 +326,23 @@ signal trace_done, s_tracedone, v_tracedone: std_logic;
 
 -- keyboard
 signal kbd_row, kbd_col: std_logic_vector(3 downto 0);
-signal ka, kb, kc, kd: std_logic;
-signal decodedswitch: std_logic_vector(7 downto 0);
+signal kb, kc, ko_ti, ko_sinclair: std_logic;
+--signal decodedswitch: std_logic_vector(7 downto 0);
 ------------------------------------------------------------------------------------------------------------------
 --		 D8			D7				D6			D5			D4				D3				D2				D1			D0	------------------				
-signal k_1, 		k_2, 			k_3, 		k_4, 		k_5, 			k_6, 			k_7, 			k_8, 		k_9: std_logic; -- KC
-signal k_clear, 	k_equals, 	k_plus, 	k_minus, k_multiply, k_divide, 	k_cerror, 	k_dot, 	k_0: std_logic; -- KB
+--signal k_1, 		k_2, 			k_3, 		k_4, 		k_5, 			k_6, 			k_7, 			k_8, 		k_9: std_logic; -- KC
+--signal k_clear, 	k_equals, 	k_plus, 	k_minus, k_multiply, k_divide, 	k_cerror, 	k_dot, 	k_0: std_logic; -- KB
 ------------------------------------------------------------------------------------------------------------------
 signal kbd_key: std_logic_vector(15 downto 0);
 signal kbd_state: std_logic;
-signal kbd_clear, kbd_cerror: std_logic;
+--signal kbd_clear, kbd_cerror: std_logic;
 
 signal nDigit: std_logic_vector(8 downto 0);
-signal segment: std_logic_vector(7 downto 0);
+signal segment, a2g: std_logic_vector(7 downto 0);
 signal led_debug, led_digit8: std_logic_vector(3 downto 0);
-signal debugAn: std_logic_vector(3 downto 0) := "1110";
-signal tmsAn: std_logic_vector(3 downto 0);
+signal tmsAn, debugAn: std_logic_vector(3 downto 0);
 signal pmod_in: std_logic_vector(3 downto 0);
+signal led_flash: std_logic;
 
 -- PS/2 interface ----------------
 signal ps2_pulse: std_logic;
@@ -349,6 +353,8 @@ signal ps2_scan: std_logic_vector(15 downto 0);
 signal clk_cpu, clk_ss: std_logic;
 signal txd, disableSs: std_logic;
 signal trace_enable: std_logic;
+signal sinclair: std_logic; -- 0 for TI Datamath, 1 for Sinclair Scientific
+signal brk_ack, brk_req: std_logic;
 
 -- VGA
 signal ram_out, ram_in: std_logic_vector(7 downto 0);
@@ -379,7 +385,7 @@ begin
         reset => Reset,
         clock0_in => freq38400,
         clock1_in => freq1k,
-        clock2_in => freq2,
+        clock2_in => freq3M125, --freq2,
         clock3_in => freq1M5625,
         clocksel => switch(6 downto 5),
         modesel => switch(7),
@@ -387,13 +393,13 @@ begin
         clock_out => clk_ss
     );
 
---ss_mux: freqmux Port map ( 
---				reset => reset,
---				f0in => clk_ss,
---				f1in => freq38400,
---				sel => disableSs,
---				fout => clk_cpu
---			 );
+ss_mux: freqmux Port map ( 
+				reset => reset,
+				f0in => clk_ss,
+				f1in => freq38400,
+				sel => disableSs,
+				fout => clk_cpu
+			 );
 
 --debounced: block is
 --begin
@@ -459,11 +465,12 @@ end block;
 		we => ram_we,
 		x => ram_x,
 		y => ram_y,
+		mode => sw, -- TODO: display on VGA current switch settings
 		din => ram_in,
 		dout => ram_out
 	);
 
-	-- VGA controller takes precendence when driving the video memory bus
+	-- VGA controller takes precedence when driving the video memory bus
 	ram_x <= controller_x when (controller_busy = '1') else tracer_x;
 	ram_y <= controller_y when (controller_busy = '1') else tracer_y;
 	ram_we <= '0' when (controller_busy = '1') else (tracer_we and tracer_busy);	-- controller always just reads memory for display
@@ -487,34 +494,51 @@ end block;
 		y => tracer_y
 	);
 
---serial debug tracer -------------
-		s_tracer: sio0800 Port map ( 
-		reset => reset,
-		clk => freq38400,
-		txChar => trace_ascii,
-		txChar_sent => s_tracedone,
-		txd => txd 
-	);
+-- serial debug tracer ------------
+--		s_tracer: sio0800 Port map ( 
+--		reset => reset,
+--		clk => freq38400,
+--		txChar => trace_ascii,
+--		txChar_sent => s_tracedone,
+--		txd => txd 
+--	);
 
-trace_enable <= enable_serialtrace or switch(0);
-trace_done <= v_tracedone and s_tracedone when (enable_serialtrace = '1') else v_tracedone;
-------------------------------------
+trace_enable <= switch(0); --enable_serialtrace or switch(0);
+trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') else v_tracedone;
+
+-- Dual mode calculator (TI Datamath or Sinclair Scientific) -----
+	sinclair <= switch(1);
+	-- in Sinclair mode, C[lear] key is tied to reset
+	reset_0800 <= (reset or button(2)) when (sinclair = '1') else reset;
+	-- grant breakpoint only is SW(7) is low (normal operation)
+	-- switching to "on" disables breakpoint but enables single stepping
+	-- Debug sequence:
+	-- (1) Add asterisk (*) after last hex character of instruction in .asm file
+	-- (2) build .bin file which sets bit 11 of instructions into TI/Sinclair ROM where * is found
+	-- (3) set SW(7) to low, press BTN(3) to start calculator
+	-- (4) when breakpoint is received, TMS0800 will stop and display will flash, set SW(7) to on
+	-- (5) press BTN(3) to single step
+	-- (6) when done go to step 3
+	brk_ack <= brk_req and (not SW(7));
+	led_flash <= brk_ack and freq2;
 	
 	calculator: tms0800 Port map ( 
-		reset => reset,
-		clk_cpu => clk_ss, -- TODO: clk_cpu??
+		reset => reset_0800,
+		clk_cpu => clk_cpu, --clk_ss, -- TODO: clk_cpu??
 		nDigit => nDigit,
 		segment => segment,
-		ka => ka,
+		ka => '1', -- not used
 		kb => kb,
 		kc => kc,
-		kd => kd,
+		kd => '1', -- not used
+		sinclair => sinclair,
 		trace_enable => trace_enable,
 		trace_ascii => trace_ascii, 
 		trace_ready => trace_done,
-		breakpoint_enable => not switch(7),
+		breakpoint_req => brk_req,
+		breakpoint_ack => brk_ack,
 		singlestep_disable => disableSs,
-		dbg_in => X"FFFF" xor (k_divide & k_equals & k_dot & k_clear & k_multiply & k_cerror & k_8 & k_7 & k_minus & k_6 & k_5 & k_4 & k_plus & k_3 & k_2 & k_1),
+		dbg_in => trace_enable & "000000" & trace_done & trace_ascii, -- using generic debug port to show the trace char 
 		dbg_show => show_debug,
 		dbg_select(2) => show_upper_digits,
 		dbg_select(1 downto 0) => slow(4 downto 3), 
@@ -522,14 +546,15 @@ trace_done <= v_tracedone and s_tracedone when (enable_serialtrace = '1') else v
 	);
 
 -- Adapt TMS0800 9 digit common cathode display to 4 digit + 4 leds display
-A_TO_G(6) <= not segment(0);
-A_TO_G(5) <= not segment(1);
-A_TO_G(4) <= not segment(2);
-A_TO_G(3) <= not segment(3);
-A_TO_G(2) <= not segment(4);
-A_TO_G(1) <= not segment(5);
-A_TO_G(0) <= not segment(6);
-DOT <= not segment(7);
+a2g <= X"FF" when (led_flash = '1') else (X"FF" xor segment); 
+A_TO_G(0) <= a2g(6);
+A_TO_G(1) <= a2g(5);
+A_TO_G(2) <= a2g(4);
+A_TO_G(3) <= a2g(3);
+A_TO_G(4) <= a2g(2);
+A_TO_G(5) <= a2g(1);
+A_TO_G(6) <= a2g(0);
+DOT <= a2g(7);
 
 AN <= debugAn when (show_debug = '1') else tmsAn;
 LED <= led_debug(1 downto 0) when (show_debug = '1') else led_digit8(1 downto 0);
@@ -556,8 +581,8 @@ led_digit8 <= "1111" when (nDigit(8) = '0' and segment = pattern_minus) else "00
 -- 7 (in)	ROW1			TXD (not used, this is RXD from Sys0800 perspective)
 ----------------------------------
 -- hook up PmodKYPD as the keyboard
-PMOD(3 downto 0) <= txd & "111" when (enable_serialtrace = '1') else kbd_col(0) & kbd_col(1) & kbd_col(2) & kbd_col(3);
-pmod_in <= "1111" when (enable_serialtrace = '1') else PMOD(7 downto 4); -- prevent stray signals coming in from PMOD if kbd is not attached
+PMOD(3 downto 0) <= kbd_col(0) & kbd_col(1) & kbd_col(2) & kbd_col(3); -- when (enable_serialtrace = '0') else txd & "111";
+pmod_in <= PMOD(7 downto 4); -- when (enable_serialtrace = '0') else "1111"; -- prevent stray signals coming in from PMOD if kbd is not attached
 
 with slow(8 downto 7) select
 	kbd_state <= 	kbd_row(0) when "00",
@@ -578,31 +603,31 @@ begin
 	end if;
 end process;
 
-kbd_clear <= 	enable_serialtrace or (not button(1));	
-kbd_cerror <=	enable_serialtrace or (not button(2));
+--kbd_clear <= 	enable_serialtrace or (not button(1));	
+--kbd_cerror <=	enable_serialtrace or (not button(2));
 
 -- "virtual keyboard" is either PmodKYPD or switches/buttons (just for debug as some keys are not available)
-decodedswitch <= decode4to8(to_integer(unsigned(switch(3 downto 0))));
+--decodedswitch <= decode4to8(to_integer(unsigned(switch(3 downto 0))));
 
-k_1 <= not button(1) when (decodedswitch(0) = '1') else kbd_key(0);
-k_2 <= not button(1) when (decodedswitch(1) = '1') else kbd_key(1);
-k_3 <= not button(1) when (decodedswitch(2) = '1') else kbd_key(2);
-k_4 <= not button(1) when (decodedswitch(3) = '1') else kbd_key(4);
-k_5 <= not button(1) when (decodedswitch(4) = '1') else kbd_key(5);
-k_6 <= not button(1) when (decodedswitch(5) = '1') else kbd_key(6);
-k_7 <= not button(1) when (decodedswitch(6) = '1') else kbd_key(8);
-k_8 <= not button(1) when (decodedswitch(7) = '1') else kbd_key(9);
-k_9 <= '1' when (enable_serialtrace = '1') else kbd_key(10); -- Note that not available with debug "keyboard"
+--k_1 <= not button(1) when (decodedswitch(0) = '1') else kbd_key(0);
+--k_2 <= not button(1) when (decodedswitch(1) = '1') else kbd_key(1);
+--k_3 <= not button(1) when (decodedswitch(2) = '1') else kbd_key(2);
+--k_4 <= not button(1) when (decodedswitch(3) = '1') else kbd_key(4);
+--k_5 <= not button(1) when (decodedswitch(4) = '1') else kbd_key(5);
+--k_6 <= not button(1) when (decodedswitch(5) = '1') else kbd_key(6);
+--k_7 <= not button(1) when (decodedswitch(6) = '1') else kbd_key(8);
+--k_8 <= not button(1) when (decodedswitch(7) = '1') else kbd_key(9);
+--k_9 <= '1' when (enable_serialtrace = '1') else kbd_key(10); -- Note that not available with debug "keyboard"
 
-k_clear 		<= not button(2) when (decodedswitch(0) = '1') else kbd_clear;
-k_equals 	<= not button(2) when (decodedswitch(1) = '1') else kbd_key(14);
-k_plus 		<= not button(2) when (decodedswitch(2) = '1') else kbd_key(3);
-k_minus 		<= not button(2) when (decodedswitch(3) = '1') else kbd_key(7);
-k_multiply 	<= not button(2) when (decodedswitch(4) = '1') else kbd_key(11);
-k_divide 	<= not button(2) when (decodedswitch(5) = '1') else kbd_key(15);
-k_cerror 	<= not button(2) when (decodedswitch(6) = '1') else kbd_cerror;
-k_dot 		<= not button(2) when (decodedswitch(7) = '1') else kbd_key(13);
-k_0			<= '1' when (enable_serialtrace = '1') else kbd_key(12); -- Note that not available with debug "keyboard"
+--k_clear 		<= not button(2) when (decodedswitch(0) = '1') else kbd_clear;
+--k_equals 	<= not button(2) when (decodedswitch(1) = '1') else kbd_key(14);
+--k_plus 		<= not button(2) when (decodedswitch(2) = '1') else kbd_key(3);
+--k_minus 		<= not button(2) when (decodedswitch(3) = '1') else kbd_key(7);
+--k_multiply 	<= not button(2) when (decodedswitch(4) = '1') else kbd_key(11);
+--k_divide 	<= not button(2) when (decodedswitch(5) = '1') else kbd_key(15);
+--k_cerror 	<= not button(2) when (decodedswitch(6) = '1') else kbd_cerror;
+--k_dot 		<= not button(2) when (decodedswitch(7) = '1') else kbd_key(13);
+--k_0			<= '1' when (enable_serialtrace = '1') else kbd_key(12); -- Note that not available with debug "keyboard"
 
 -- intersect digit scans with the keys to drive kx lines
 kbdmux: mux11x4 port map 
@@ -610,21 +635,27 @@ kbdmux: mux11x4 port map
 		e => "11" & nDigit,
 		x(43 downto 40) => "1111",
 		x(39 downto 36) => "1111",
-		x(35 downto 32) => '1' & k_1 & k_clear 	& '1',
-		x(31 downto 28) => '1' & k_2 & k_equals 	& '1',
-		x(27 downto 24) => '1' & k_3 & k_plus 		& '1',
-		x(23 downto 20) => '1' & k_4 & k_minus 	& '1',
-		x(19 downto 16) => '1' & k_5 & k_multiply & '1',
-		x(15 downto 12) => '1' & k_6 & k_divide 	& '1',
-		x(11 downto 8)  => '1' & k_7 & k_cerror 	& '1',
-		x(7 downto 4)   => '1' & k_8 & k_dot 		& '1',
-		x(3 downto 0)   => '1' & k_9 & k_0 			& '1',
-		y(3) => kd,	-- not used
-		y(2) => kc, -- == kn
-		y(1) => kb,	-- == ko
-		y(0) => ka	-- == kp, not used
+		--------------------------------------------------------------------
+		--								 BOTH  			TI					  SINCLAIR
+		--------------------------------------------------------------------
+		x(35 downto 32) => '1' & kbd_key(0)  & not button(2) 	& not button(2),
+		x(31 downto 28) => '1' & kbd_key(1)  & kbd_key(14) 	& kbd_key(13),
+		x(27 downto 24) => '1' & kbd_key(2)  & kbd_key(3) 		& kbd_key(11),
+		x(23 downto 20) => '1' & kbd_key(4)  & kbd_key(7) 		& kbd_key(15),
+		x(19 downto 16) => '1' & kbd_key(5)  & kbd_key(11) 	& kbd_key(7),
+		x(15 downto 12) => '1' & kbd_key(6)  & kbd_key(15) 	& kbd_key(3),
+		x(11 downto 8)  => '1' & kbd_key(8)  & not button(1) 	& not button(1),
+		x(7 downto 4)   => '1' & kbd_key(9)  & kbd_key(13) 	& kbd_key(14),
+		x(3 downto 0)   => '1' & kbd_key(10) & kbd_key(12) 	& kbd_key(12),
+		--------------------------------------------------------------------
+		y(3) => open,			-- not used
+		y(2) => kc, 			-- kn, common for both
+		y(1) => ko_ti,			-- ko for TI
+		y(0) => ko_sinclair	-- ko for Sinclair
 	);
 
+	kb <= ko_sinclair when (sinclair = '1') else ko_ti;
+	
 --ps2kbd: ps2 port map 
 --		(
 --		 clk_i => CLK,   	-- Global clk

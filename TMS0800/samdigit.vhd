@@ -46,7 +46,7 @@ end samdigit;
 architecture Behavioral of samdigit is
 
 signal in_l, in_r: std_logic_vector(3 downto 0);
-signal val: std_logic_vector(3 downto 0) := X"9"; -- TODO remove value
+signal val: std_logic_vector(3 downto 0);-- := X"9"; -- TODO remove value
 --signal effectiveSel: std_logic_vector(1 downto 0);
 
 begin

@@ -121,6 +121,7 @@ constant sbcbcd: lookup :=
 signal rs: std_logic_vector(7 downto 0);
 alias r: std_logic_vector(3 downto 0) is rs(7 downto 4);
 alias s: std_logic_vector(3 downto 0) is rs(3 downto 0);
+signal r_is_hex, s_is_hex, rs_is_hex: std_logic;
 
 signal opr2, sum0, sum1, sum2, dif0, dif1, dif2: std_logic_vector(4 downto 0);
 
@@ -133,14 +134,20 @@ with sel select
 				c & k when src_ck,
 				c & b when src_cb,
 				X"00" when others;
-				
+
+-- if r or s were originally hex digits (for example, "E" means minus) then bypass the BCD correction
+-- this kicks in when doing AAKC ALL for example if A is a negative number: otherwise 0EXX in A becomes 14XX in C! 
+r_is_hex <= (r(3) and (not r(2)) and r(1)) or (r(3) and r(2));
+s_is_hex <= (s(3) and (not s(2)) and s(1)) or (s(3) and s(2));
+rs_is_hex <= s_is_hex or r_is_hex;
+
 opr2 <= '0' & s when (cin = '0') else std_logic_vector(unsigned('0' & s) + 1);
 -- add path
 sum0 <= std_logic_vector(unsigned('0' & r) + unsigned(opr2));
-sum2 <= adcbcd(to_integer(unsigned(sum0)));
+sum2 <= sum0 when (rs_is_hex = '1') else adcbcd(to_integer(unsigned(sum0)));
 -- sub path
 dif0 <= std_logic_vector(unsigned('0' & r) - unsigned(opr2));
-dif2 <= sbcbcd(to_integer(unsigned(dif0)));
+dif2 <= dif0 when (rs_is_hex = '1') else sbcbcd(to_integer(unsigned(dif0)));
 
 -- select outputs
 with fun select

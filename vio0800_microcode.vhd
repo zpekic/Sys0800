@@ -36,7 +36,7 @@ entity vio0800_microcode is
     Port ( reset : in  STD_LOGIC;
            clk : in  STD_LOGIC;
            char : in  STD_LOGIC_VECTOR (7 downto 0);
-           char_sent : buffer STD_LOGIC;
+           char_sent : out STD_LOGIC;
 			  busy_in: in STD_LOGIC;
 			  busy_out: out STD_LOGIC;
 			  we : out STD_LOGIC;

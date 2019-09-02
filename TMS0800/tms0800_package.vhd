@@ -31,6 +31,8 @@ constant char_HOME: std_logic_vector(7 downto 0) := X"02";
 constant char_CR: std_logic_vector(7 downto 0) := X"0D";
 constant char_LF: std_logic_vector(7 downto 0) := X"0A";
 
+constant tab: character := character'val(9);
+
 constant decode4to8: bytemask :=(
 "00000000", -- 0 disabled
 "00000000",
@@ -171,7 +173,7 @@ constant cond_ko: 			integer := 9;
 constant cond_kn: 			integer := 8;
 constant cond_keystrobe: 	integer := 7;
 constant cond_digit10: 		integer := 6;
-constant cond_5:			 	integer := 5;
+constant cond_sinclair:		integer := 5;
 constant cond_dk: 			integer := 4;
 constant cond_3: 				integer := 3;
 constant cond_2: 				integer := 2;
@@ -190,8 +192,8 @@ impure function decode8(val: std_logic_vector(2 downto 0);  s0: string; s1: stri
 impure function decode16(val: std_logic_vector(3 downto 0); s0: string; s1: string; s2: string; s3: string;  s4: string; s5: string; s6: string; s7: string; s8: string; s9: string; s10: string; s11: string; s12: string; s13: string; s14: string; s15: string) return string;
 
 -- TODO move these elsewhere
-impure function get_mask(mask: in std_logic_vector(3 downto 0)) return string;
-impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: std_logic) return string;
+impure function get_mask(mask: in std_logic_vector(3 downto 0); sinclair_mode: in boolean) return string;
+impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: in std_logic; sinclair_mode: in boolean) return string;
 
 end tms0800_package;
 
@@ -332,30 +334,53 @@ begin
 	end if;
 end decode16;
 
-impure function get_mask(mask: in std_logic_vector(3 downto 0)) return string is
+impure function get_mask(mask: in std_logic_vector(3 downto 0); sinclair_mode: in boolean) return string is
 begin
-	return decode16(mask, 
-			"F0/DPT7 ..........7",
-			"F1/EXPD .........4.",
-			"F2/LSD  ........1..",
-			"F3      .......0...",
-			"F4      ......0....",
-			"F5      .....0.....",
-			"F6      ....0......",
-			"F9      .0.........",
-			"F10/OV1 1..........",
-			"OPFGS   ........000",
-			"MSD1    01.........",
-			"MANT1   000000001..",
-			"MANT    000000000..",
-			"EXP1    .........01",
-			"EXP     .........00",
-			"ALL     00000000000"
-		);
+	if (sinclair_mode) then
+		-- see here: https://github.com/shirriff/TICalculatorJSSimulator/blob/master/masks_sinclair.js
+		return decode16(mask,
+				 "00000000000",
+				 "5..........",
+				 "..00.......",
+				 "....1......",
+				 "....0000000",
+				 "..........1",
+				 "..01.......",
+				 ".5.........",
+				 "000000.....",
+				 "0001.......",
+				 "....0000001",
+				 ".....1.....",
+				 "....00005..",
+				 "....00001..",
+				 "....4......",
+				 "....0......"
+			);
+	else
+		-- see here: 
+		return decode16(mask, 
+				"F0/DPT7 ..........7",
+				"F1/EXPD .........4.",
+				"F2/LSD  ........1..",
+				"F3      .......0...",
+				"F4      ......0....",
+				"F5      .....0.....",
+				"F6      ....0......",
+				"F9      .0.........",
+				"F10/OV1 1..........",
+				"OPFGS   ........000",
+				"MSD1    01.........",
+				"MANT1   000000001..",
+				"MANT    000000000..",
+				"EXP1    .........01",
+				"EXP     .........00",
+				"ALL     00000000000"
+			);
+	end if;
 end get_mask;
 
 -- simple instruction disassemble
-impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: std_logic) return string is
+impure function unassemble(instruction: in std_logic_vector(11 downto 0); full: in std_logic; sinclair_mode: in boolean) return string is
 alias mask: std_logic_vector(3 downto 0) is instruction(3 downto 0);
 alias target: std_logic_vector(8 downto 0) is instruction(8 downto 0);
 
@@ -377,120 +402,142 @@ begin
 			-- flag instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "NOP16 " & decode2(full, "", get_mask(mask));
+					return "NOP16 " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0001" =>
-					return "WAITDK " & decode2(full, "", get_mask(mask));
+					return "WAITDK " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0010" =>
-					return "WAITNO " & decode2(full, "", get_mask(mask));
+					return "WAITNO " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0011" =>
-					return "SFB " & decode2(full, "", get_mask(mask));
+					return "SFB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0100" =>
-					return "SFA " & decode2(full, "", get_mask(mask));
+					return "SFA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0101" =>
-					return "SYNCH " & decode2(full, "", get_mask(mask));
+					return "SYNCH " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0110" =>
-					return "SCANNO " & decode2(full, "", get_mask(mask));
+					return "SCANNO " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0111" =>
-					return "ZFB " & decode2(full, "", get_mask(mask));
+					return "ZFB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1000" =>
-					return "ZFA " & decode2(full, "", get_mask(mask));
+					return "ZFA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1001" =>
-					return "TFB " & decode2(full, "", get_mask(mask));
+					return "TFB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1010" =>
-					return "TFA " & decode2(full, "", get_mask(mask));
+					return "TFA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1011" =>
-					return "FFB " & decode2(full, "", get_mask(mask));
+					return "FFB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1100" =>
-					return "FFA " & decode2(full, "", get_mask(mask));
+					return "FFA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1101" =>
-					return "CF " & decode2(full, "", get_mask(mask));
+					return "CF " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1110" =>
-					return "NOP30 " & decode2(full, "", get_mask(mask));
+					return "NOP30 " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1111" =>
-					return "EXF " & decode2(full, "", get_mask(mask));
+					return "EXF " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when others =>
-					return "???";
+					assert false report "unassemble(): unrecognized instruction '" & get_string(to_integer(unsigned(instruction)), 3, 16) & "'" severity failure;
 			end case;
 		when "1100" | "1101" =>
 			-- register instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "AABA " & decode2(full, "", get_mask(mask));
+					return "AABA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0001" =>
-					return "AAKA " & decode2(full, "", get_mask(mask));
+					return "AAKA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0010" =>
-					return "AAKC " & decode2(full, "", get_mask(mask));
+					return "AAKC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0011" =>
-					return "ABOA " & decode2(full, "", get_mask(mask));
+					if (sinclair_mode) then
+						return "ACBB " & decode2(full, "", get_mask(mask, sinclair_mode));
+					else
+						return "ABOA " & decode2(full, "", get_mask(mask, sinclair_mode));
+					end if;
 				when "0100" =>
-					return "ABOC " & decode2(full, "", get_mask(mask));
+					return "ABOC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0101" =>
-					return "ACKA " & decode2(full, "", get_mask(mask));
+					return "ACKA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0110" =>
-					return "ACKB " & decode2(full, "", get_mask(mask));
+					return "ACKB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0111" =>
-					return "SABA " & decode2(full, "", get_mask(mask));
+					return "SABA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1000" =>
-					return "SABC " & decode2(full, "", get_mask(mask));
+					return "SABC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1001" =>
-					return "SAKA " & decode2(full, "", get_mask(mask));
+					return "SAKA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1010" =>
-					return "SCBC " & decode2(full, "", get_mask(mask));
+					return "SCBC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1011" =>
-					return "SCKC " & decode2(full, "", get_mask(mask));
+					return "SCKC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1100" =>
-					return "CAB " & decode2(full, "", get_mask(mask));
+					return "CAB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1101" =>
-					return "CAK " & decode2(full, "", get_mask(mask));
+					return "CAK " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1110" =>
-					return "CCB " & decode2(full, "", get_mask(mask));
+					return "CCB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1111" =>
-					return "CCK " & decode2(full, "", get_mask(mask));
+					return "CCK " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when others =>
-					return "???";
+					assert false report "unassemble(): unrecognized instruction '" & get_string(to_integer(unsigned(instruction)), 3, 16) & "'" severity failure;
 			end case;
 		when "1110" | "1111" =>
 			-- register instructions
 			case instruction(7 downto 4) is
 				when "0000" =>
-					return "AKA " & decode2(full, "", get_mask(mask));
+					return "AKA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0001" =>
-					return "AKB " & decode2(full, "", get_mask(mask));
+					return "AKB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0010" =>
-					return "AKC " & decode2(full, "", get_mask(mask));
+					return "AKC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0011" =>
-					return "EXAB " & decode2(full, "", get_mask(mask));
+					return "EXAB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0100" =>
-					return "SLLA " & decode2(full, "", get_mask(mask));
+					return "SLLA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0101" =>
-					return "SLLB " & decode2(full, "", get_mask(mask));
+					return "SLLB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0110" =>
-					return "SLLC " & decode2(full, "", get_mask(mask));
+					return "SLLC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "0111" =>
-					return "SRLA " & decode2(full, "", get_mask(mask));
+					return "SRLA " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1000" =>
-					return "SRLB " & decode2(full, "", get_mask(mask));
+					return "SRLB " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1001" =>
-					return "SRLC " & decode2(full, "", get_mask(mask));
+					return "SRLC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1010" =>
-					return "AKCN " & decode2(full, "", get_mask(mask));
+					return "AKCN " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1011" =>
-					return "AAKAH " & decode2(full, "", get_mask(mask));
+					if (sinclair_mode) then
+						return "SCBA " & decode2(full, "", get_mask(mask, sinclair_mode));
+					else
+						return "AAKAH " & decode2(full, "", get_mask(mask, sinclair_mode));
+					end if;
 				when "1100" =>
-					return "SAKAH " & decode2(full, "", get_mask(mask));
+					if (sinclair_mode) then
+						return "SCKB " & decode2(full, "", get_mask(mask, sinclair_mode));
+					else
+						return "SAKAH " & decode2(full, "", get_mask(mask, sinclair_mode));
+					end if;
 				when "1101" =>
-					return "ACKC " & decode2(full, "", get_mask(mask));
+					return "ACKC " & decode2(full, "", get_mask(mask, sinclair_mode));
 				when "1110" =>
-					return "??? " & decode2(full, "", get_mask(mask));
+					if (sinclair_mode) then
+						return "AABC " & decode2(full, "", get_mask(mask, sinclair_mode));
+					else 
+						return "NOP " & decode2(full, "", get_mask(mask, sinclair_mode));
+					end if;
 				when "1111" =>
-					return "??? " & decode2(full, "", get_mask(mask));
+					if (sinclair_mode) then
+						return "ACBC " & decode2(full, "", get_mask(mask, sinclair_mode));
+					else
+						return "NOP " & decode2(full, "", get_mask(mask, sinclair_mode));
+					end if;
 				when others =>
-					return "???";
+					assert false report "unassemble(): unrecognized instruction '" & get_string(to_integer(unsigned(instruction)), 3, 16) & "'" severity failure;
 			end case;
 			when others =>
-				return "???";
+				assert false report "unassemble(): unrecognized instruction '" & get_string(to_integer(unsigned(instruction)), 3, 16) & "'" severity failure;
 	end case;
+
 	return "???";
+
 end unassemble;
 
 

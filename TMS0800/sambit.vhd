@@ -41,7 +41,7 @@ end sambit;
 
 architecture Behavioral of sambit is
 
-signal fbit: std_logic := '1'; -- TODO remove value
+signal fbit: std_logic; -- := '1'; -- TODO remove value
 --signal effectiveSel: std_logic_vector(1 downto 0);
 
 begin

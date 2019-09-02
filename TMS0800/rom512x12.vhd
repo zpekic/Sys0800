@@ -34,6 +34,7 @@ use work.tms0800_package.all;
 
 entity rom512x12 is
 	 Generic (
+			sinclair_mode: boolean;
 			asm_filename: string;
 			lst_filename: string);
     Port ( 
@@ -43,9 +44,9 @@ end rom512x12;
 
 architecture Behavioral of rom512x12 is
 
-constant NOP16: std_logic_vector(11 downto 0) := "X1001000XXXX";
+constant NOP16: std_logic_vector(11 downto 0) := "X1001000XXXX";  
 constant NOP30: std_logic_vector(11 downto 0) := "X1011110XXXX";
-constant tab: character := character'val(9);
+constant BREAK: std_logic_vector(11 downto 0) := "100000000000"; -- OR mask for breakpoint!
 
 alias a9: std_logic_vector(8 downto 0) is address(8 downto 0);
 
@@ -207,7 +208,7 @@ begin
 		write(hex_line, string'(""" => X"""));
 		write(hex_line, get_string(to_integer(unsigned(temp_mem(i))), 3, 16));
 		write(hex_line, string'(""" --"));
-		write(hex_line, unassemble(temp_mem(i), '1'));
+		write(hex_line, unassemble(temp_mem(i), '1', sinclair_mode));
 		writeline(hex_file, hex_line);
    end loop;
 
@@ -218,7 +219,7 @@ begin
 	return true;
 end dump_mem;
 		
-impure function init_wordmemory(mif_file_name : in string; hex_file_name: in string; depth: in integer; default_value: std_logic_vector(11 downto 0)) return rom_array is
+impure function init_wordmemory(mif_file_name : in string; hex_file_name: in string; depth: in integer; default_value: std_logic_vector(11 downto 0); sinclair_mode: in boolean) return rom_array is
     variable temp_mem : rom_array;-- := (others => (others => default));
 	 variable dummy: boolean;
 
@@ -228,7 +229,7 @@ begin
 	return temp_mem;
 end init_wordmemory;
 	
-signal data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, NOP30);
+signal data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, NOP30 or BREAK, sinclair_mode);
 attribute rom_style : string;
 attribute rom_style of data_from_file : signal is "block";
 

@@ -40,11 +40,14 @@ entity tms0800 is
            kb : in  STD_LOGIC;
            kc : in  STD_LOGIC;
            kd : in  STD_LOGIC;
+			  -- select TI Datamath (0) or Sinclair Scientific (1) mode 
+			  sinclair: in STD_LOGIC;
 			  -- debug, trace additions
            trace_enable : in  STD_LOGIC;
 			  trace_ascii: out STD_LOGIC_VECTOR(7 downto 0);
 			  trace_ready: in STD_LOGIC;
-			  breakpoint_enable: in STD_LOGIC;
+			  breakpoint_req: out STD_LOGIC;
+			  breakpoint_ack: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
 			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
            dbg_show : in  STD_LOGIC;
@@ -57,6 +60,7 @@ architecture Behavioral of tms0800 is
 component displayunit is
     Port ( clk : in  STD_LOGIC;
 			  reset: in STD_LOGIC;
+			  sinclair: in STD_LOGIC;
            reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
            debug : in  STD_LOGIC_VECTOR (31 downto 0);
            dp_pos : in  STD_LOGIC_VECTOR(3 downto 0);
@@ -65,12 +69,12 @@ component displayunit is
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
 			  digit10: out STD_LOGIC;
-			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
-			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
+			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0));
 end component;
 
 component rom512x12 is
 	 Generic (
+			sinclair_mode: boolean;
 			asm_filename: string;
 			lst_filename: string
 		);
@@ -159,7 +163,8 @@ constant h2a: hex2ascii :=(
 	);
 	
 type masktable is array (0 to 15) of std_logic_vector(43 downto 0);
-constant km: masktable :=(
+
+constant km_ti: masktable :=(
     X"FFFFFFFFFF7", -- M0 	=	F0/DPT7
     X"FFFFFFFFF4F", -- M1	=	F1/EXPD
     X"FFFFFFFF1FF", -- M2	= 	F2/LSD
@@ -176,6 +181,25 @@ constant km: masktable :=(
     X"FFFFFFFFF01", -- M13	=	EXP1
     X"FFFFFFFFF00", -- M14	=	EXP
     X"00000000000"  -- M15	=	ALL
+	 );
+
+constant km_sinclair: masktable :=(
+    X"00000000000", -- M0 = ALL
+    X"5FFFFFFFFFF", -- M1 = MANT_S5
+    X"FF00FFFFFFF", -- M2 = EXP
+    X"FFFF1FFFFFF", -- M3 = DIGIT1
+    X"FFFF0000000", -- M4 = MANT
+    X"FFFFFFFFFF1", -- M5 = MANTLOW1
+    X"FF01FFFFFFF", -- M6 = EXP1
+    X"F5FFFFFFFFF", -- M7 = EXP_S5
+    X"000000FFFFF", -- M8 = TOPSTUFF
+    X"0001FFFFFFF", -- M9 = EXPSGNS1
+    X"FFFF0000001", -- M10 = MANT1
+    X"FFFFF1FFFFF", -- M11 = MASKA1
+    X"FFFF00005FF", -- M12 = MANTD5
+    X"FFFF00001FF", -- M13 = MANTD1
+    X"FFFF4FFFFFF", -- M14 = DIGIT4
+    X"FFFF0FFFFFF"  -- M15 = DIGIT
 	 );
 	 
 signal mask: std_logic_vector(10 downto 0);
@@ -198,7 +222,7 @@ signal digit10: std_logic;
 signal hex: std_logic_vector(3 downto 0);
 
 -- instruction being executed
-signal instruction: std_logic_vector(11 downto 0); -- 11 bit instruction (+ 1 bit breakpoint)
+signal instruction_ti, instruction_sinclair, instruction: std_logic_vector(11 downto 0); -- 11 bit instruction (+ 1 bit breakpoint)
 alias i_breakpoint: std_logic is instruction(11);
 alias i_class_and_opcode: std_logic_vector(6 downto 0) is instruction(10 downto 4);
 alias i_jumpaddress: std_logic_vector(8 downto 0) is instruction(8 downto 0);
@@ -214,7 +238,7 @@ signal enable_b: std_logic_vector(10 downto 0);
 signal enable_c: std_logic_vector(10 downto 0);
 signal enable_af: std_logic_vector(10 downto 0);
 signal enable_bf: std_logic_vector(10 downto 0);
---------------------------------------------
+-- 4-bit ALU outputs ----------------------------
 signal alu_y: std_logic_vector(3 downto 0);
 signal alu_cout: std_logic;
 
@@ -245,7 +269,8 @@ signal clk_scan: std_logic;
 
 -- DEBUG only
 signal u_addr: std_logic_vector(7 downto 0);
-signal breakpoint: std_logic;
+--signal breakpoint: std_logic;
+--signal ascii_offset, ascii_hex: std_logic_vector(7 downto 0);
 
 begin
 
@@ -253,6 +278,7 @@ du: displayunit port map
 (
 		clk => clk_scan,
 		reset => reset,
+		sinclair => sinclair,
 		reg_a => reg_a(43 downto 8),
 		debug(15 downto 0) => pc(7 downto 0) & u_addr,
 		debug(31 downto 16) => dbg_in,
@@ -262,8 +288,7 @@ du: displayunit port map
 		nDigit => nDigit,
 		segment => segment,
 		digit10 => digit10,
-		dbg_select => dbg_select,
-		dbg_state => open --dbg_state
+		dbg_select => dbg_select
 );
 			  
 -- Program counter and instruction -------------------------------------------------------
@@ -288,17 +313,40 @@ begin
 end process;
 
 -- note there is no instruction register, the output of program memory is used directly --
-program: rom512x12
+prog_ti: rom512x12
 		generic map
 		(
-			asm_filename => "./calculator_source_edit_6.asm",
-			lst_filename => "./tms0800/output/calculator_source_edit_6.lst"
+			sinclair_mode => false,	-- hint to show correct disassembled listing (TI instructions)
+			--asm_filename => "./ti_source.asm",
+			--lst_filename => "./tms0800/output/ti_source.lst"
+			asm_filename => "./sourceCode_ti.asm",
+			lst_filename => "./tms0800/output/sourceCode_ti.lst"
 		)	
 		port map
 		(
 			address => pc,
-			data => instruction
+			data => instruction_ti
 		);
+
+prog_sinclair: rom512x12
+		generic map
+		(
+			sinclair_mode => true, -- hint to show correct disassembled listing (Sinclair mode)
+			asm_filename => "./sourceCode_sinclair.asm",
+			lst_filename => "./tms0800/output/sourceCode_sinclair.lst"
+		)	
+		port map
+		(
+			address => pc,
+			data => instruction_sinclair
+		);
+
+-- feed either TI or Sinclair prog and masks into the processor ---
+instruction <= instruction_sinclair when (sinclair = '1') else instruction_ti;
+-- expose breakpoint bit to the host
+breakpoint_req <= i_breakpoint;
+-- get encoded K (constants) and M (masks) from lookup ROM --		
+km_current <= km_sinclair(to_integer(unsigned(i_mask))) when (sinclair = '1') else km_ti(to_integer(unsigned(i_mask)));
 
 -- process to determine if any key pressed
 set_keystrobe: process(reset, clk_scan, digit10, ka, kb, kc, kd)
@@ -323,8 +371,7 @@ clk_scan <= '0' when (sync_verb = pulse) else '1';
 dbg_state <= kb & kc & keystrobe & digit10;
 
 -------------------------------------------------------
---breakpoint <= breakpoint_enable when (pc = "001001101") else '0'; -- break at "PLSKEY"
-breakpoint <= breakpoint_enable and i_breakpoint; -- break whenever instruction bit 11 is set!
+--breakpoint <= breakpoint_enable and i_breakpoint; -- break whenever instruction bit 11 is set!
 
 cu: controlunit port map 
 	( 
@@ -341,11 +388,11 @@ cu: controlunit port map
       condition(cond_kn) => kc,						-- '0' if numeric key pressed
       condition(cond_keystrobe) => keystrobe,	-- '1' is any key was pressed in this scan
       condition(cond_digit10) => digit10,			-- '1' after least significant displayed digit
-      condition(cond_5) => '0',						
+      condition(cond_sinclair) => sinclair,						
       condition(cond_dk) => '1',						-- as if DisplayKey is stuck == display always on
       condition(cond_3) => '0',
       condition(cond_2) => '0',
-      condition(cond_breakpoint) => breakpoint,
+      condition(cond_breakpoint) => breakpoint_ack,
       condition(cond_true) => '1', -- hard-code "true" for condition 0
 		u_code => u_code,
 		-- debug only
@@ -357,9 +404,6 @@ af_xor_bf <= flag_a xor flag_b;
 
 -- hint to clock logic outside (disable single step when in trace code, or when microcode does it)
 singlestep_disable <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
-
--- get encoded K (constants) and M (masks) from lookup ROM --		
-km_current <= km(to_integer(unsigned(i_mask)));
 
 -- enables for each digit or bit in the SAM are at "intersection" of digit and register enabled line --
 -- when the "master write" from microcode is 1. Note these are all active 0 																		  --
@@ -396,7 +440,7 @@ begin
 	);
 	
 	-- rightmost digits a, b, c of mantissa or exponent are connected to "0" for left << shift --
-	lsd: if ((i = 0) or (i = 2)) generate
+	lsd: if (i = 0) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
@@ -436,7 +480,7 @@ begin
 	end generate;
 
 	-- in the middle of mantissa --
-	isd: if ((i > 2) and (i < 10)) generate
+	isd: if ((i > 0) and (i < 10)) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
@@ -476,7 +520,7 @@ begin
 	end generate;
 
 	-- leftmost digits of mantissa or exponent of a, b, c are connected to "0" for right >> shift --
-	msd: if ((i = 1) or (i = 10)) generate
+	msd: if (i = 10) generate
 		a: samdigit Port map ( 
 				clk => clk_cpu,
 				sel => reg_verb,
@@ -672,7 +716,7 @@ with tu_char(3 downto 0) select
 				c_selected 								when t_c,
 				instruction(3 downto 0) 			when t_instr0,
 				instruction(7 downto 4) 			when t_instr1,
-				'0' & instruction(10 downto 8)	when t_instr2,
+				instruction(11 downto 8)			when t_instr2, -- note that instruction(11) is breakpoint flag!
 				pc(3 downto 0) 						when t_pc0,
 				pc(7 downto 4) 						when t_pc1,
 				"000" & pc(8) 							when t_pc2,
@@ -681,6 +725,9 @@ with tu_char(3 downto 0) select
 				dbg_in(11 downto 8)					when t_dbgin2,
 				dbg_in(15 downto 12)					when t_dbgin3;
 	
+--ascii_hex <= X"3" & hex;
+--ascii_offset <= X"07" when hex(3) = '1' and (hex(2) = '1' or hex(1) = '1') else X"00";
+
 -- if input >127 then it is from mux, otherwise transmit directly
 setTrace: process(clk_cpu, tu_char, hex)
 begin
@@ -690,6 +737,7 @@ begin
 			trace_ascii <= tu_char;
 		else
 			-- convert 4-bit HEX to 8-bit ASCII
+			--trace_ascii <= std_logic_vector(unsigned(ascii_hex) + unsigned(ascii_offset));
 			trace_ascii <= h2a(to_integer(unsigned(hex)));
 		end if;
 	end if;

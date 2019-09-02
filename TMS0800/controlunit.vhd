@@ -89,7 +89,7 @@ with u_if select
 						condition(cond_2)  				when "0010",
 						condition(cond_3)  				when "0011",
 						condition(cond_dk)  				when "0100",
-						condition(cond_5)  				when "0101",
+						condition(cond_sinclair)  		when "0101",
 						condition(cond_digit10)  		when "0110",
 						condition(cond_keystrobe)  	when "0111",
 						condition(cond_kn)  				when "1000",
@@ -122,7 +122,14 @@ begin
 					u_pc <= u_pc;
 				-- start executing macroinstruction routine, which are mapped to 128 - 255
 				when upc_fork => 
-					u_pc <= '1' & instruction;
+					if (instruction(6 downto 5) = "00") then
+						-- if the instruction is JUMP on condition reset, mask out the jump target
+						-- this way 32 microcode locations are freed up!
+						u_pc <= "10000000";
+					else
+						-- map 7 bit instruction directly to upper 128 words of microcode
+						u_pc <= '1' & instruction;
+					end if;
 				-- return from "1 level subroutine"
 				when upc_return => 
 					u_pc <= u_ra;

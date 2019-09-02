@@ -53,7 +53,7 @@ constant JUMPCC: integer := 7;
 constant JUMP: integer := 8;
 constant CONTINUE: integer := 9;
 constant TRACE: integer := 10;
-constant CLEARTXD: integer := 63;
+constant CLEARTXD: integer := 63; --123
 constant COPYS: integer := 67;
 constant MUL10: integer := 73;
 constant DIV10: integer := 76;
@@ -61,6 +61,12 @@ constant ADCBCD: integer := 82;
 constant SBCBCD: integer := 109;
 constant ADCHEX: integer := 112;
 constant SBCHEX: integer := 115;
+-- Sinclair instruction implementations ----------
+constant ACBB: integer := 129; -- B <= C + B
+constant SCBA: integer := 130; -- A <= C - B
+constant SCKB: integer := 131; -- B <= C - K
+constant AABC: integer := 132; -- C <= A + B			
+constant ACBC: integer := 133; -- C <= C + B
 --------------------------------------------------
 
 -- define and initialize microcode
@@ -242,8 +248,8 @@ begin
 				return "if(keystrobe) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_digit10 =>
 				return "if(digit10) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
-			when cond_5 =>
-				return "if(c5) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
+			when cond_sinclair =>
+				return "if(sinclair) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_dk =>
 				return "if(dk) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_3 =>
@@ -304,7 +310,7 @@ begin
 					write(out_line, "-- ");
 				end if;
 		  else					-- addresses 128 .. 255 map to calculator instruction entry points
-				write(out_line, "--" & unassemble(std_logic_vector(to_unsigned((i - 128) * 16, 12)), '0'));
+				write(out_line, "--" & unassemble(std_logic_vector(to_unsigned((i - 128) * 16, 12)), '0', false));
 		  end if;
 		  writeline(out_file, out_line);
 		  
@@ -526,9 +532,9 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		41 =>
+			uc_e(e_ror) or 
 			uc_tracechar('A'),
 		42 =>
-			uc_e(e_ror) or 
 			uc_tracechar('F'),
 		43 =>
 			uc_tracechar('='),
@@ -544,9 +550,9 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		48 =>
+			uc_e(e_ror) or 
 			uc_tracechar('B'),
 		49 =>
-			uc_e(e_ror) or 
 			uc_tracechar('F'),
 		50 =>
 			uc_tracechar('='),
@@ -586,11 +592,14 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 ----- END TRACER ROUTINE -------------
 
 		64 => -- ZFB, ZFA
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		65 =>
+			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_zero),
 		66 =>
+			uc_ss(ss_off) or
 			uc_e(e_rol) or
 			uc_goto(uc_label(64)),
 
@@ -609,12 +618,15 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(COPYS)),
 
 		70 => -- WAITDK
+			uc_ss(ss_off) or
 			uc_if(cond_dk, uc_label(JUMP), uc_label(CONTINUE)), 
 
 		71 => -- WAITNO
+			uc_ss(ss_off) or
 			uc_if(cond_keystrobe, uc_label(JUMP), uc_label(CONTINUE)), 
 			
 		MUL10 => -- SLLA, SLLB, SLLC
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		74 =>
 			uc_ss(ss_off) or
@@ -626,6 +638,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(73)),
 
 		DIV10 => -- SRLA, SRLB, SRLC
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		77 =>
 			uc_ss(ss_off) or
@@ -637,6 +650,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(76)),
 
 		79 => -- FFB, FFA
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		80 =>
 			uc_ss(ss_off) or
@@ -648,6 +662,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(79)),
 		
 		ADCBCD => -- AABA, AAKA, AAKC, ACKA, ACKB 
+			uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		83 =>
@@ -662,6 +677,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(ADCBCD)),
 		
 		85 => -- EXAB
+			uc_ss(ss_off) or
 			uc_dst(dst_nul) or	
 			uc_src(src_ab) or 
 			uc_dst(dst_a) or
@@ -691,6 +707,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(85)),
 
 		90 => -- TFB
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		91 =>
 			uc_ss(ss_off) or
@@ -701,6 +718,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_cflag, uc_label(CONTINUE), uc_label(90)), -- bail if set, otherwise loop
 
 		93 => -- TFA
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		94 =>
 			uc_ss(ss_off) or
@@ -711,6 +729,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_cflag, uc_label(CONTINUE), uc_label(93)), -- bail if set, otherwise loop
 
 		96 => -- CF
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		97 =>
 			uc_ss(ss_off) or
@@ -721,29 +740,36 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_if(cond_cflag, uc_label(CONTINUE), uc_label(96)), -- bail if set, otherwise loop
 
 		99 => -- EXF
+			uc_ss(ss_off) or
 			uc_dst(dst_af) or		-- set af destination 1 clock ahead
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		100 =>
+			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_load) or	-- af <= af xor bf;
 			uc_dst(dst_bf),		-- set bf destination 1 clock ahead
 		101 =>
+			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_load) or -- bf <= af xor bf;
 			uc_dst(dst_af),		-- set af destination 1 clock ahead
 		102 =>
+			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_flag(bit_load),   -- af <= af xor bf;
 		103 =>
+			uc_ss(ss_off) or
 			uc_dst(dst_nul) or
 			uc_e(e_rol) or
 			uc_goto(uc_label(99)),
 			
 		104 => -- used in hex add/sub to reset cflag
+			uc_ss(ss_off) or
 			uc_cond(cf_zero) or
 			uc_goto(uc_label(CONTINUE)),
 			
 		105 => -- SFB, SFA
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		106 =>
 			uc_ss(ss_off) or
@@ -759,20 +785,22 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(105)),
 
 		SBCBCD => -- SABA, SABC, SAKA, SCBC, SCKC, CAB, CAK, CCB, CCK
+			uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		110 =>
-			--uc_ss(ss_off) or
+			uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_alu(fun_sbcbcd) or
 			uc_reg(bcd_fromalu) or
 			uc_cond(cf_cout),
 		111 =>
-			--uc_ss(ss_off) or
+			uc_ss(ss_off) or
 			uc_e(e_rol) or
 			uc_goto(uc_label(SBCBCD)),
 
 		ADCHEX => -- AAKAH
+			uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(104)), -- clear cflag first
 		113 =>
@@ -787,6 +815,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(ADCHEX)),
 
 		SBCHEX => -- SAKAH
+			uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(104)), -- clear cflag first
 		116 =>
@@ -801,6 +830,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(SBCHEX)),
 
 		118 => -- AKCN 
+			uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(121)),
 		119 =>
@@ -814,23 +844,55 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_e(e_rol) or
 			uc_goto(uc_label(118)),
 		121 => -- if kn was down, means we have a correct count in last mantissa, so bail, otherwise continue
-			--uc_ss(ss_off) or
+			uc_ss(ss_off) or
 			uc_if(cond_kn, upc_next, uc_label(CONTINUE)),
 		122 => -- if scanned all, bail with CF = 1 to indicate no key
+			uc_ss(ss_off) or
 			uc_if(cond_digit10, uc_label(CONTINUECS), uc_label(FORK)), 
-			
-		-- 123, 124, 125, 126 ==> free
-			
+						
 		127 => -- SCANNO
+			uc_ss(ss_off) or
 			uc_cond(cf_zero) or
 			uc_if(cond_digit10, uc_label(CONTINUE), uc_label(FORK)), 
 
 		-- jump if condition reset (0)
-		128|129|130|131|132|133|134|135|136|137|138|139|140|141|142|143|144|145|146|147|148|149|150|151|152|153|154|155|156|157|158|159 =>
+		128 =>
 			uc_if(cond_cflag, uc_label(CONTINUECC), uc_label(JUMPCC)),
 
+		-- Sinclair instruction implementations ---
+		ACBB => -- B <= C + B
+			uc_cond(cf_zero) or
+			uc_src(src_cb) or
+			uc_dst(dst_b) or
+			uc_goto(uc_label(ADCBCD)),  
+			
+		SCBA => -- A <= C - B
+			uc_cond(cf_zero) or
+			uc_src(src_cb) or
+			uc_dst(dst_a) or
+			uc_goto(uc_label(SBCBCD)),  
+		
+		SCKB => -- B <= C - K
+			uc_cond(cf_zero) or
+			uc_src(src_ck) or
+			uc_dst(dst_b) or
+			uc_goto(uc_label(SBCBCD)),  
+		
+		AABC => -- C <= A + B
+			uc_cond(cf_zero) or
+			uc_src(src_ab) or
+			uc_dst(dst_c) or
+			uc_goto(uc_label(ADCBCD)),  
+			
+		ACBC => -- C <= C + B
+			uc_cond(cf_zero) or
+			uc_src(src_cb) or
+			uc_dst(dst_c) or
+			uc_goto(uc_label(ADCBCD)),  
+		-- end of Sinclair instructions
+		 
 		-- jump if condition set (1)
-		160|161|162|163|164|165|166|167|168|169|170|171|172|173|174|175|176|177|178|179|180|181|182|183|184|185|186|187|188|189|190|191 =>
+		160|161|162|163|164|165|166|167|168|169|170|171|172|173|174|175|176|177|178|179|180|181|182|183|184|185|186|187|188|189|190 => 
 			uc_if(cond_cflag, uc_label(JUMPCC), uc_label(CONTINUECC)),
 		
 		-- jump on KO
@@ -934,11 +996,11 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_dst(dst_c) or
 			uc_goto(uc_label(ADCBCD)),  
 			
-		227 => -- ABOA
+		227 => -- ABOA / ACBB
 			uc_e(e_rol) or
 			uc_src(src_ab) or
 			uc_dst(dst_a) or
-			uc_goto(uc_label(COPYS)),
+			uc_if(cond_sinclair, uc_label(ACBB), uc_label(COPYS)),
 			
 		228 => -- ABOC
 			uc_e(e_rol) or
@@ -1082,19 +1144,19 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_dst(dst_a) or
 			uc_goto(uc_label(118)),  
 
-		251 => -- AAKAH
+		251 => -- AAKAH / SCBA
 			uc_e(e_rol) or
 			uc_cond(cf_zero) or
 			uc_src(src_ak) or
 			uc_dst(dst_a) or
-			uc_goto(uc_label(ADCHEX)),  
+			uc_if(cond_sinclair, uc_label(SCBA), uc_label(ADCHEX)),
 			
-		252 => -- SAKAH
+		252 => -- SAKAH / SCKB
 			uc_e(e_rol) or
 			uc_cond(cf_zero) or
 			uc_src(src_ak) or
 			uc_dst(dst_a) or
-			uc_goto(uc_label(SBCHEX)),  
+			uc_if(cond_sinclair, uc_label(SCKB), uc_label(SBCHEX)),
 
 		253 => -- ACKC
 			uc_e(e_rol) or
@@ -1103,11 +1165,13 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_dst(dst_c) or
 			uc_goto(uc_label(ADCBCD)),  
 			
-		254 => -- free (note: this location can't be used as jump target because code is reserved for "fork")
-			uc_goto(uc_label(CONTINUE)),
+		254 => -- NOP / AABC (note: this location can't be used as jump target because code is reserved for "fork")
+			uc_e(e_rol) or
+			uc_if(cond_sinclair, uc_label(AABC), uc_label(CONTINUE)),
 
-		255 => -- free (note: this location can't be used as jump target because code is reserved for "repeat")
-			uc_goto(uc_label(CONTINUE)),
+		255 => -- NOP / free (note: this location can't be used as jump target because code is reserved for "repeat")
+			uc_e(e_rol) or
+			uc_if(cond_sinclair, uc_label(ACBC), uc_label(CONTINUE)),
 			
 		others => -- stop microcode (this should never happen!)
 			uc_halt
