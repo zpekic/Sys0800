@@ -4,6 +4,10 @@
 //Add * after the last binary digit of instruction to generate breakpoint for TMS0800
 //-----------------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------------
+// This file has been manually modified to include "*" breakpoint at start of operation. Re-running AsmGenerator may overwrite this file and clear them
+//-----------------------------------------------------------------------------------
+
 // TI calculator simulator
 // Ken Shirriff, http://righto.com/ti
 // Based on patent US3934233
@@ -11,18 +15,18 @@
 //
 // This file holds the source and object code to be executed.
 
-0 0000 0000 0000	10 11000 0000   START    ZFA    ALL ; init - clear flags
-0 0000 0001 0001	10 10111 0000            ZFB    ALL
-0 0000 0010 0002	11 10000 0000            AKA    ALL ; clear A and C
-0 0000 0011 0003	11 10010 0000            AKC    ALL
+0 0000 0000 0000	10 11000 0000  START    ZFA    ALL ; init - clear flags
+0 0000 0001 0001	10 10111 0000           ZFB    ALL
+0 0000 0010 0002	11 10000 0000           AKA    ALL ; clear A and C
+0 0000 0011 0003	11 10010 0000           AKC    ALL
 ; For display, A's MANT starts in digit 5. For computation, MANT starts in digit 6
 ; C holds the previous value, with MANT starting in digit 6. Digit 5 counts inputted digits
-0 0000 0100 0004	11 10100 0100   MAINLOOP SLLA   MANT ; Shift mantissa for display
-0 0000 0101 0005	11 10001 0000            AKB    ALL ; clear B
-0 0000 0110 0006	10 10101 0000   WAITSCAN SYNC ; loop until no key pressed
-0 0000 0111 0007	10 10110 0000            SCAN
-0 0000 1000 0008	01 00000 0110            BINE   WAITSCAN
-0 0000 1001 0009	10 10010 0111   WAITKEY  WAITNO WAITED ; wait for key
+0 0000 0100 0004	11 10100 0100  MAINLOOP SLLA   MANT ; Shift mantissa for display
+0 0000 0101 0005	11 10001 0000           AKB    ALL ; clear B
+0 0000 0110 0006	10 10101 0000  WAITSCAN SYNC ; loop until no key pressed
+0 0000 0111 0007	10 10110 0000           SCAN
+0 0000 1000 0008	01 00000 0110           BINE   WAITSCAN
+0 0000 1001 0009	10 10010 0111  WAITKEY  WAITNO WAITED ; wait for key
 0 0000 1010 000A	10 10101 0000  WAITED2  SYNC ; debounce: still pressed?
 0 0000 1011 000B	10 10110 0000           SCAN
 0 0000 1100 000C	00 00000 1001           BIE    WAITKEY ; loop if no key
@@ -83,7 +87,7 @@
 ; computed using C and B is shifted left to align the mantissas.
 ; If the mantissas have different signs, they are subtracted instead of added,
 ; which may require A and B to be swapped.
-0 0011 1101 003D	11 10010 1111  ADDSUB   AKC    DIGIT ; Clear C DIGIT
+0 0011 1101 003D	11 10010 1111* ADDSUB   AKC    DIGIT ; Clear C DIGIT
 0 0011 1110 003E	11 00110 0000           ACKB   ALL ; copy C to B
 0 0011 1111 003F	11 11110 0010           ABAC   EXP ; add exponents into C
 0 0100 0000 0040	00 00100 0001           BIE    CLRCC ; Clear condition code
@@ -128,10 +132,10 @@
 ; A's exponent from C's.
 ; The DIVLOOP loop repeatedly subtracts B from C, counting into A.
 ; Successive loops shift by 10 to perform long division.
-0 0110 0001 0061	10 11010 0011  DIVKEY   TFA    UP_LOW ; entry point for DIV
-0 0110 0010 0062	01 01010 0011           BINE   TANKEY ; alt-DIV is TAN
-0 0110 0011 0063	10 10100 1011           SFA    COS_TAN ; reusing flag to indicate division
-0 0110 0100 0064	10 10100 0001 DODIV    SFA    RET1FLAG ; 'subroutine call' flag
+0 0110 0001 0061	10 11010 0011 DIVKEY   TFA    UP_LOW ; entry point for DIV
+0 0110 0010 0062	01 01010 0011          BINE   TANKEY ; alt-DIV is TAN
+0 0110 0011 0063	10 10100 1011          SFA    COS_TAN ; reusing flag to indicate division
+0 0110 0100 0064	10 10100 0001*DODIV    SFA    RET1FLAG ; 'subroutine call' flag
 0 0110 0101 0065	00 01000 0010          BIE    NORMLIZE ; 'Subroutine call' to normalize A
 0 0110 0110 0066	10 11000 0001 RET1     ZFA    RET1FLAG ; 'Return' here after NORMLIZE
 0 0110 0111 0067	11 00001 0111          AAKA   EXP_S5 ; toggle A's EXP sign since dividing not multiplying
@@ -212,9 +216,9 @@
 0 1010 0001 00A1	11 00010 0000 EXPPOS2  AAKC   ALL ; Copy A to C
 0 1010 0010 00A2	00 00000 0100          BIE    MAINLOOP ; BET
 ; Entry points for TAN, COS, and SIN
-0 1010 0011 00A3	10 10100 0111 TANKEY   SFA    TAN
-0 1010 0100 00A4	10 10100 1011 COSKEY   SFA    COS_TAN
-0 1010 0101 00A5	11 01001 0110 SINKEY   SAKA   EXP1 ; shift mantissa by exponent
+0 1010 0011 00A3	10 10100 0111*TANKEY   SFA    TAN
+0 1010 0100 00A4	10 10100 1011*COSKEY   SFA    COS_TAN
+0 1010 0101 00A5	11 01001 0110*SINKEY   SAKA   EXP1 ; shift mantissa by exponent
 0 1010 0110 00A6	01 01010 1001          BINE   DONESHFT
 0 1010 0111 00A7	11 10111 0100          SRLA   MANT
 0 1010 1000 00A8	00 01010 0101          BIE    SINKEY
@@ -304,7 +308,7 @@
 ; 
 ; First, split int and frac parts of A. Next LOGLOOP computes constant 229.15.
 ; Control continues at ANTILOG which calls MULTMANT to multiply 1-frac by 229.15
-0 1111 0000 00F0	11 01101 0110 DOALOG   CAK    EXP1 ; Test exponent
+0 1111 0000 00F0	11 01101 0110*DOALOG   CAK    EXP1 ; Test exponent
 ; Split int and frac parts of A: int in digits 1-4, frac in 7-10
 ; Shortcut: If EXP > 0, assume EXP is 1. Anything bigger would probably overflow
 ; This is totally wrong for cases like antilog(0.001E3)
@@ -322,7 +326,7 @@
 ; First compute -1/log(.99) = 229.15. Then compute -log(MANT A)/log(.99).
 ; Divide the results to get log(MANT A). Finally, add EXP A to get the result.
 ; Then compute -log(A)/go through power loop a second time
-0 1111 1011 00FB	11 10010 0000 LOG      AKC    ALL ; This entry point computes -1/log(.99) = 229.15
+0 1111 1011 00FB	11 10010 0000*LOG      AKC    ALL ; This entry point computes -1/log(.99) = 229.15
 0 1111 1100 00FC	11 11101 0011          ACKC   DIGIT1 ; C = 10.00000
 ; LOGLOOP is used twice; once to compute the constant 229.15 and then again
 ; on the actual argument.
@@ -353,7 +357,7 @@
 1 0000 1100 010C	11 11000 0000          SRLB   ALL
 1 0000 1101 010D	11 00011 0100          ABCB   MANT ; add epsilon*100
 1 0000 1110 010E	11 10011 0100          EXAB   MANT ; result in A MANT
-1 0000 1111 010F	10 11010 0101*         TFA    LOW
+1 0000 1111 010F	10 11010 0101          TFA    LOW
 1 0001 0000 0110	01 10010 1110          BINE   ANTILOG ; return to ANTILOG if LOW set
 1 0001 0001 0111	11 00100 0000          ABOC   ALL ; Copy B (arg) to C
 1 0001 0010 0112	10 11100 0111          FFA    TAN ; go through loop twice, tracked by TAN flag
@@ -364,7 +368,7 @@
 ; B MANT = 229.15 = -1 / log(.99)
 ; Copy A MANT to C MANT, then compute C MANT / B MANT
 ; This yields A MANT = log(original A MANT)
-1 0001 0101 0115	11 00010 0100*         AAKC   MANT
+1 0001 0101 0115	11 00010 0100          AAKC   MANT
 ; For LOG fall-through: 229.15 in B, -log(arg)/log(.99) in A and C
 ; At ALOGDIV entry: 1+epsilon in B, .99^N in C
 1 0001 0110 0116	11 10000 0100 ALOGDIV  AKA    MANT ; clear A mant, arg exp still in A
@@ -404,7 +408,7 @@
 1 0011 0001 0131	11 00111 0100          SABA   MANT
 1 0011 0010 0132	11 10011 0100          EXAB   MANT; B holds 1 - original fractional part
 1 0011 0011 0133	00 00111 0101          BIE    MULTMANT ; Sub call to multiply by 229.15
-1 0011 0100 0134	11 10111 0100*ALOGRET  SRLA   MANT
+1 0011 0100 0134	11 10111 0100 ALOGRET  SRLA   MANT
 1 0011 0101 0135	10 10011 0111          SFB    NEWEXP; indicates ALOG
 1 0011 0110 0136	00 01111 1011          BIE    LOG ; Branch every time
 ; conditional for LOGLOOP when doing ANTILOG
@@ -415,16 +419,16 @@
 ; .99^epsilon = 1-epsilon/100 = 1/(1+epsilon/100)) approximately
 ; so divide by 1+remainder/100 to account for the fractional part of
 ; the exponent in .99^N, since the loop only does the integer part.
-1 0011 1001 0139	11 00001 1101*         AAKA   MANTD1 ; restore A digits to 0
+1 0011 1001 0139	11 00001 1101          AAKA   MANTD1 ; restore A digits to 0
 1 0011 1010 013A	11 10100 0100          SLLA   MANT ; use the ignored digits for extra accuracy?
 1 0011 1011 013B	11 00001 1011          AAKA   MASKA1; A = 1 + remainder/100
 1 0011 1100 013C	11 11111 0100          ABCC   MANT; restore value of C from extra iteration
 1 0011 1101 013D	11 10011 0100          EXAB   MANT; B has correction factor, C has 10*.99^N
 1 0011 1110 013E	10 11000 0011          ZFA    UP_LOW
-1 0011 1111 013F	00 10001 0110          BIE    ALOGDIV ; BET divide and finish up ALOG
+;1 0011 1111 013F	00 10001 0110          BIE    ALOGDIV ; BET divide and finish up ALOG
 
 ; -- ORIGINAL
-;1 0011 1111 013F	01 10001 0110          BINE   ALOGDIV ; BET divide and finish up ALOG
+1 0011 1111 013F	01 10001 0110          BINE   ALOGDIV ; BET divide and finish up ALOG
 ; -- /ORIGINAL
 
 ;  

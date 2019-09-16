@@ -38,41 +38,43 @@ entity sys0800 is
     Port ( 
 				-- 50MHz on the Mercury board
 				CLK: in std_logic;
+
 				-- Master reset button on Mercury board
 				USR_BTN: in std_logic; 
+
 				-- Switches on baseboard
-				-- SW(0) -- (debug key input when PMOD is used for serial trace output, otherwise turn on VGA tracing)
-				-- SW(1) -- (debug key input when PMOD is used for serial trace output, otherwise turn on Sinclair Scientific mode)  
-				-- SW(2) -- (debug key input when PMOD is used for serial trace output)
-				-- SW(3) -- PMOD mode
-				-- 	0 -- use it for keyboard (https://reference.digilentinc.com/reference/pmod/pmodkypd/reference-manual)
-				--		1 -- use it for serial trace output (https://www.parallax.com/product/28024)
-				-- SW(4) -- 7SEG display mode
-				-- 	0 show calculator output (press button 0 to show upper digits)
-				-- 	1 show machine (3:2) and microcode (1:0) program counters
+				-- SW(0) -- show trace on VGA
+				-- SW(1) -- show debug data (program and microcode program counter) on 7seg instead of calculator data
+				-- SW(2) -- enable microcode single stepping (use with BTN(3))
+				-- SW(3) -- enable calculator program breakpoints
+				-- SW(4) -- (not used)
 				-- SW(6 downto 5) -- system clock speed 
-				--   0   0	1 Hz	
+				--   0   0	57600 Hz (close to original calculator frequency)
 				--   0   1	1024 Hz 
 				--   1   0  1.5625 MHz
-				--   1   1  25 MHz (buggy!)
+				--   1   1  3.125 MHz
 				-- SW(7)
-				--   0   single step mode off (BTN3 should be pressed once to start the system)
-				--   1   single step mode on (use with BTN3)
+				--   0   TI Datamath
+				--   1   Sinclair Scientific
 				SW: in std_logic_vector(7 downto 0); 
+
 				-- Push buttons on baseboard
-				-- BTN0 - show upper 4 digits 
-				-- BTN1 - digit key press if PMOD is in serial debug output mode, otherwise CLEAR key
-				-- BTN2 - operation key press if PMOD is in serial debug output mode, otherwise CERROR key
+				-- BTN0 - show upper 4 digits on 7seg LEDs
+				-- BTN1 - CE[NTRY] key for TI and UP key for Sinclair
+				-- BTN2 - C[LEAR] key for both TI and Sinclair (this is also "reset" for Sinclair)
 				-- BTN3 - single step clock cycle forward if in SS mode (NOTE: single press on this button is needed after reset to unlock SS circuit)
 				BTN: in std_logic_vector(3 downto 0); 
+
 				-- Stereo audio output on baseboard
 				--AUDIO_OUT_L, AUDIO_OUT_R: out std_logic;
+
 				-- 7seg LED on baseboard 
 				A_TO_G: out std_logic_vector(6 downto 0); 
 				AN: out std_logic_vector(3 downto 0); 
 				DOT: out std_logic; 
 				-- 4 LEDs on Mercury board (3 and 2 are used by VGA VSYNC and HSYNC)
 				LED: out std_logic_vector(1 downto 0);
+
 				-- ADC interface
 				-- channel	input
 				-- 0			Audio Left
@@ -89,8 +91,9 @@ entity sys0800 is
 				--ADC_CSN: out std_logic;
 				--PS2_DATA: in std_logic;
 				--PS2_CLOCK: in std_logic;
+
 				--VGA interface
-				--register state is traced to VGA after each instruction if SW3 = off and SW0 = on
+				--register state is traced to VGA after each instruction if SW0 = on
 				--640*480 50Hz mode is used, which give 80*60 character display
 				--but to save memory, only 80*50 are used which fits into 4k video RAM
 				HSYNC: out std_logic;
@@ -98,7 +101,9 @@ entity sys0800 is
 				RED: out std_logic_vector(2 downto 0);
 				GRN: out std_logic_vector(2 downto 0);
 				BLU: out std_logic_vector(1 downto 0);
+				
 				--PMOD interface
+				--connection to https://store.digilentinc.com/pmod-kypd-16-button-keypad/
 				PMOD: inout std_logic_vector(7 downto 0)
           );
 end sys0800;
@@ -109,6 +114,7 @@ component mwvga is
     Port ( reset : in  STD_LOGIC;
            clk : in  STD_LOGIC;
            rgbBorder : in  STD_LOGIC_VECTOR (7 downto 0);
+			  field: in STD_LOGIC_VECTOR(1 downto 0);
 			  din: in STD_LOGIC_VECTOR (7 downto 0);
            hactive : buffer  STD_LOGIC;
            vactive : buffer  STD_LOGIC;
@@ -129,7 +135,10 @@ component xyram is
            x : in  STD_LOGIC_VECTOR (7 downto 0);
            y : in  STD_LOGIC_VECTOR (7 downto 0);
            mode : in  STD_LOGIC_VECTOR (7 downto 0);
+           nDigit : in  STD_LOGIC_VECTOR (8 downto 0);
+           segment : in  STD_LOGIC_VECTOR(7 downto 0);
            din : in  STD_LOGIC_VECTOR (7 downto 0);
+			  field: buffer STD_LOGIC_VECTOR(1 downto 0);
            dout : out  STD_LOGIC_VECTOR (7 downto 0));
 end component;
 --
@@ -232,13 +241,13 @@ component clocksinglestepper is
            clock_out : out STD_LOGIC);
 end component;
 
-component freqmux is
-    Port ( reset : in  STD_LOGIC;
-           f0in : in  STD_LOGIC;
-           f1in : in  STD_LOGIC;
-           sel : in  STD_LOGIC;
-           fout : out  STD_LOGIC);
-end component;
+--component freqmux is
+--    Port ( reset : in  STD_LOGIC;
+--           f0in : in  STD_LOGIC;
+--           f1in : in  STD_LOGIC;
+--           sel : in  STD_LOGIC;
+--           fout : out  STD_LOGIC);
+--end component;
 
 component debouncer8channel is
     Port ( clock : in  STD_LOGIC;
@@ -297,14 +306,7 @@ alias freq256: std_logic is slow(3);  -- 256Hz
 alias freq512: std_logic is slow(2);  	-- 512Hz
 alias freq1k: std_logic is slow(1);  	-- 1024Hz
 alias freq2k: std_logic is slow(0);  	-- 2048Hz
---		  baud(7) => freq300,
---		  baud(6) => freq600,		  
---		  baud(5) => freq1200,
---		  baud(4) => freq2400,
---		  baud(3) => freq4800,
---		  baud(2) => freq9600,
---		  baud(1) => freq19200,
-alias freq38400: std_logic is baud(0);		-- 38400
+alias freq57600: std_logic is baud(0);		-- 57600
 alias freq1M5625: std_logic is fast(4); 	-- 1.5625MHz
 alias freq3M125: std_logic is fast(3);
 alias freq6M25: std_logic is fast(2);
@@ -313,12 +315,22 @@ alias freq25M: std_logic is fast(0);		-- 25MHz (suitable for 640x480 VGA)
 
 signal reset, nReset, reset_0800: std_logic;
 -- debounced inputs
-signal switch: std_logic_vector(7 downto 0);
-alias show_debug: std_logic is switch(4);
+--signal switch: std_logic_vector(7 downto 0);
+alias sw_sinclair: std_logic is SW(7);
+alias sw_freqsel: std_logic_vector(1 downto 0) is SW(6 downto 5);
+alias sw_enable_breakpoints: std_logic is SW(3);
+alias sw_enable_singlestep: std_logic is SW(2);
+alias sw_show_leddebug: std_logic is SW(1);
+alias sw_show_vgatrace: std_logic is SW(0);
+--alias show_debug: std_logic is switch(4);
 --alias enable_serialtrace: std_logic is switch(3);
 
-signal button: std_logic_vector(3 downto 0);
-alias show_upper_digits: std_logic is button(0);
+--signal button: std_logic_vector(3 downto 0);
+alias btn_step: std_logic is BTN(3);
+alias btn_clear: std_logic is BTN(2);
+alias btn_centry: std_logic is BTN(1);
+alias btn_up: std_logic is BTN(1);
+alias btn_show_upper_digits: std_logic is BTN(0);
 
 -- tracing bus
 signal trace_ascii: std_logic_vector(7 downto 0);
@@ -327,33 +339,22 @@ signal trace_done, s_tracedone, v_tracedone: std_logic;
 -- keyboard
 signal kbd_row, kbd_col: std_logic_vector(3 downto 0);
 signal kb, kc, ko_ti, ko_sinclair: std_logic;
---signal decodedswitch: std_logic_vector(7 downto 0);
-------------------------------------------------------------------------------------------------------------------
---		 D8			D7				D6			D5			D4				D3				D2				D1			D0	------------------				
---signal k_1, 		k_2, 			k_3, 		k_4, 		k_5, 			k_6, 			k_7, 			k_8, 		k_9: std_logic; -- KC
---signal k_clear, 	k_equals, 	k_plus, 	k_minus, k_multiply, k_divide, 	k_cerror, 	k_dot, 	k_0: std_logic; -- KB
-------------------------------------------------------------------------------------------------------------------
 signal kbd_key: std_logic_vector(15 downto 0);
 signal kbd_state: std_logic;
---signal kbd_clear, kbd_cerror: std_logic;
+signal pmod_in: std_logic_vector(3 downto 0);
 
+-- display
 signal nDigit: std_logic_vector(8 downto 0);
 signal segment, a2g: std_logic_vector(7 downto 0);
 signal led_debug, led_digit8: std_logic_vector(3 downto 0);
 signal tmsAn, debugAn: std_logic_vector(3 downto 0);
-signal pmod_in: std_logic_vector(3 downto 0);
 signal led_flash: std_logic;
 
--- PS/2 interface ----------------
-signal ps2_pulse: std_logic;
-signal ps2_code: std_logic_vector(7 downto 0);
-signal ps2_scan: std_logic_vector(15 downto 0);
-
 -- other
-signal clk_cpu, clk_ss: std_logic;
-signal txd, disableSs: std_logic;
-signal trace_enable: std_logic;
-signal sinclair: std_logic; -- 0 for TI Datamath, 1 for Sinclair Scientific
+signal clk_cpu, clk_ss_on, clk_ss_off: std_logic;
+signal singlestep_disable, singlestep_enable: std_logic;
+--signal trace_enable: std_logic;
+--signal sinclair: std_logic; -- 0 for TI Datamath, 1 for Sinclair Scientific
 signal brk_ack, brk_req: std_logic;
 
 -- VGA
@@ -362,6 +363,7 @@ signal controller_x, tracer_x, ram_x: std_logic_vector(7 downto 0);
 signal controller_y, tracer_y, ram_y: std_logic_vector(7 downto 0);
 signal tracer_busy, controller_busy: std_logic;
 signal tracer_we, ram_we: std_logic;
+signal colorband: std_logic_vector(1 downto 0);
 
 begin
    
@@ -381,25 +383,39 @@ begin
     );
 
 	-- Single step by each clock cycle, slow or fast
-	ss: clocksinglestepper port map (
-        reset => Reset,
-        clock0_in => freq38400,
-        clock1_in => freq1k,
-        clock2_in => freq3M125, --freq2,
-        clock3_in => freq1M5625,
-        clocksel => switch(6 downto 5),
-        modesel => switch(7),
-        singlestep => button(3),
-        clock_out => clk_ss
-    );
+ss_on: clocksinglestepper port map (
+	  reset => Reset,
+	  clock0_in => freq57600,
+	  clock1_in => freq1k,
+	  clock2_in => freq1M5625, --freq2,
+	  clock3_in => freq3M125,
+	  clocksel => sw_freqsel,
+	  modesel => singlestep_enable,
+	  singlestep => btn_step,
+	  clock_out => clk_cpu --clk_ss_on
+ );
 
-ss_mux: freqmux Port map ( 
-				reset => reset,
-				f0in => clk_ss,
-				f1in => freq38400,
-				sel => disableSs,
-				fout => clk_cpu
-			 );
+singlestep_enable <= sw_enable_singlestep and (not singlestep_disable);
+
+--ss_off: clocksinglestepper port map (
+--	  reset => Reset,
+--	  clock0_in => freq57600,
+--	  clock1_in => freq1k,
+--	  clock2_in => freq1M5625, --freq2,
+--	  clock3_in => freq3M125,
+--	  clocksel => sw_freqsel,
+--	  modesel => '0',
+--	  singlestep => '1',
+--	  clock_out => clk_ss_off
+-- );
+--
+--ss_mux: freqmux Port map ( 
+--				reset => reset,
+--				f0in => freq57600, --clk_ss_on,
+--				f1in => freq57600, --clk_ss_off,
+--				sel => disableSs,
+--				fout => clk_cpu
+--			 );
 
 --debounced: block is
 --begin
@@ -427,8 +443,8 @@ ss_mux: freqmux Port map (
 -- temporarily bypass debouncers!
 bounce: block is
 begin
-	switch <= SW;
-	button <= BTN;
+	--switch <= SW;
+	--button <= BTN;
 	kbd_row(3) <= pmod_in(0);
 	kbd_row(2) <= pmod_in(1);
 	kbd_row(1) <= pmod_in(2);
@@ -440,7 +456,8 @@ end block;
 	port map ( 
 		reset => reset,
 		clk => freq25M, 
-		rgbBorder => switch,
+		rgbBorder => SW,
+		field => colorband,
 		din => ram_out,
 		hactive => open,
 		vactive => controller_busy,
@@ -457,7 +474,7 @@ end block;
 	v_ram: xyram 
 	generic map (
 		maxram => 2048, -- must be <= than maxrow * maxcol
-		maxrow => 50,
+		maxrow => 48,
 		maxcol => 80	 
 	)
 	port map (
@@ -465,8 +482,11 @@ end block;
 		we => ram_we,
 		x => ram_x,
 		y => ram_y,
-		mode => sw, -- TODO: display on VGA current switch settings
+		mode => SW, -- TODO: display on VGA current switch settings
+		nDigit => nDigit,
+		segment => segment,
 		din => ram_in,
+		field => colorband,
 		dout => ram_out
 	);
 
@@ -478,7 +498,7 @@ end block;
 ---- vga debug tracer
 	v_tracer: vio0800_microcode 
 	generic map (
-		maxrow => 50,
+		maxrow => 48,
 		maxcol => 80)	 
 	port map ( 
 		reset => reset,
@@ -494,53 +514,48 @@ end block;
 		y => tracer_y
 	);
 
--- serial debug tracer ------------
---		s_tracer: sio0800 Port map ( 
---		reset => reset,
---		clk => freq38400,
---		txChar => trace_ascii,
---		txChar_sent => s_tracedone,
---		txd => txd 
---	);
-
-trace_enable <= switch(0); --enable_serialtrace or switch(0);
 trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') else v_tracedone;
 
 -- Dual mode calculator (TI Datamath or Sinclair Scientific) -----
-	sinclair <= switch(1);
 	-- in Sinclair mode, C[lear] key is tied to reset
-	reset_0800 <= (reset or button(2)) when (sinclair = '1') else reset;
+	reset_0800 <= reset or (btn_clear and sw_sinclair);
 	-- grant breakpoint only is SW(7) is low (normal operation)
 	-- switching to "on" disables breakpoint but enables single stepping
-	-- Debug sequence:
-	-- (1) Add asterisk (*) after last hex character of instruction in .asm file
-	-- (2) build .bin file which sets bit 11 of instructions into TI/Sinclair ROM where * is found
-	-- (3) set SW(7) to low, press BTN(3) to start calculator
-	-- (4) when breakpoint is received, TMS0800 will stop and display will flash, set SW(7) to on
-	-- (5) press BTN(3) to single step
-	-- (6) when done go to step 3
-	brk_ack <= brk_req and (not SW(7));
+	-- Debug sequence - build time:
+	-- (1) Run GetSourceCode.cmd to download TI and Sinclair sources and generate .asm files for both
+	-- (2) Add asterisk (*) after last hex character of instruction in .asm file
+	-- (3) build .bin file which sets bit 11 of instructions into TI/Sinclair ROM where * is found
+	-- Debug sequence - run time:
+	-- (1) set SW(3) to high, press BTN(3) to start calculator
+	-- (2) when breakpoint is encountered, TMS0800 will stop and display will flash, set SW(2) to on
+	-- (3) press BTN(3) to single step
+	-- (4) disable breakpoint by setting SW(3) to low, disable single step by setting SW(2) to low
+	brk_ack <= brk_req and sw_enable_breakpoints;
 	led_flash <= brk_ack and freq2;
 	
 	calculator: tms0800 Port map ( 
+		-- present on original chip
 		reset => reset_0800,
-		clk_cpu => clk_cpu, --clk_ss, -- TODO: clk_cpu??
+		clk_cpu => clk_cpu, --clk_ss, 
 		nDigit => nDigit,
 		segment => segment,
 		ka => '1', -- not used
 		kb => kb,
 		kc => kc,
 		kd => '1', -- not used
-		sinclair => sinclair,
-		trace_enable => trace_enable,
+		-- mode
+		sinclair => sw_sinclair,
+		-- debug and control
+		trace_enable => sw_show_vgatrace,
 		trace_ascii => trace_ascii, 
 		trace_ready => trace_done,
 		breakpoint_req => brk_req,
 		breakpoint_ack => brk_ack,
-		singlestep_disable => disableSs,
-		dbg_in => trace_enable & "000000" & trace_done & trace_ascii, -- using generic debug port to show the trace char 
-		dbg_show => show_debug,
-		dbg_select(2) => show_upper_digits,
+		singlestep_disable => singlestep_disable,
+		--dbg_in => sw_show_vgatrace & "000000" & trace_done & trace_ascii, -- using generic debug port to show the trace char 
+		dbg_in => X"FFFF" xor ('1' & kb & kc & "1111" & nDigit), -- using generic debug port to show the keyboard state 
+		dbg_show => sw_show_leddebug,
+		dbg_select(2) => btn_show_upper_digits,
 		dbg_select(1 downto 0) => slow(4 downto 3), 
 		dbg_state => led_debug
 	);
@@ -556,10 +571,10 @@ A_TO_G(5) <= a2g(1);
 A_TO_G(6) <= a2g(0);
 DOT <= a2g(7);
 
-AN <= debugAn when (show_debug = '1') else tmsAn;
-LED <= led_debug(1 downto 0) when (show_debug = '1') else led_digit8(1 downto 0);
+AN <= debugAn when (sw_show_leddebug = '1') else tmsAn;
+LED <= led_debug(1 downto 0) when (sw_show_leddebug = '1') else led_digit8(1 downto 0);
 
-tmsAn <= nDigit(7 downto 4) when (show_upper_digits = '1') else nDigit(3 downto 0);
+tmsAn <= nDigit(7 downto 4) when (btn_show_upper_digits = '1') else nDigit(3 downto 0);
 
 with slow(4 downto 3) select
 	debugAn <= 	"1110" when "00",
@@ -570,16 +585,16 @@ with slow(4 downto 3) select
 led_digit8 <= "1111" when (nDigit(8) = '0' and segment = pattern_minus) else "0000";
 
 -- Adapt TMS0800 scan keyboard
--- PMOD --- PmodKYPD -- USB2SER --
--- 0 (out)	COL4			N/C
--- 1 (out)	COL3			N/C					 
--- 2 (out)	COL2			N/C
--- 3 (out)	COL1			RXD (used, this is TXD from Sys0800 perspective)
--- 4 (in)	ROW4			N/C
--- 5 (in)	ROW3			N/C
--- 6 (in)	ROW2			N/C
--- 7 (in)	ROW1			TXD (not used, this is RXD from Sys0800 perspective)
-----------------------------------
+-- PMOD --- PmodKYPD -- 
+-- 0 (out)	COL4		
+-- 1 (out)	COL3						 
+-- 2 (out)	COL2		
+-- 3 (out)	COL1		
+-- 4 (in)	ROW4		
+-- 5 (in)	ROW3		
+-- 6 (in)	ROW2		
+-- 7 (in)	ROW1		
+-----------------------
 -- hook up PmodKYPD as the keyboard
 PMOD(3 downto 0) <= kbd_col(0) & kbd_col(1) & kbd_col(2) & kbd_col(3); -- when (enable_serialtrace = '0') else txd & "111";
 pmod_in <= PMOD(7 downto 4); -- when (enable_serialtrace = '0') else "1111"; -- prevent stray signals coming in from PMOD if kbd is not attached
@@ -603,32 +618,6 @@ begin
 	end if;
 end process;
 
---kbd_clear <= 	enable_serialtrace or (not button(1));	
---kbd_cerror <=	enable_serialtrace or (not button(2));
-
--- "virtual keyboard" is either PmodKYPD or switches/buttons (just for debug as some keys are not available)
---decodedswitch <= decode4to8(to_integer(unsigned(switch(3 downto 0))));
-
---k_1 <= not button(1) when (decodedswitch(0) = '1') else kbd_key(0);
---k_2 <= not button(1) when (decodedswitch(1) = '1') else kbd_key(1);
---k_3 <= not button(1) when (decodedswitch(2) = '1') else kbd_key(2);
---k_4 <= not button(1) when (decodedswitch(3) = '1') else kbd_key(4);
---k_5 <= not button(1) when (decodedswitch(4) = '1') else kbd_key(5);
---k_6 <= not button(1) when (decodedswitch(5) = '1') else kbd_key(6);
---k_7 <= not button(1) when (decodedswitch(6) = '1') else kbd_key(8);
---k_8 <= not button(1) when (decodedswitch(7) = '1') else kbd_key(9);
---k_9 <= '1' when (enable_serialtrace = '1') else kbd_key(10); -- Note that not available with debug "keyboard"
-
---k_clear 		<= not button(2) when (decodedswitch(0) = '1') else kbd_clear;
---k_equals 	<= not button(2) when (decodedswitch(1) = '1') else kbd_key(14);
---k_plus 		<= not button(2) when (decodedswitch(2) = '1') else kbd_key(3);
---k_minus 		<= not button(2) when (decodedswitch(3) = '1') else kbd_key(7);
---k_multiply 	<= not button(2) when (decodedswitch(4) = '1') else kbd_key(11);
---k_divide 	<= not button(2) when (decodedswitch(5) = '1') else kbd_key(15);
---k_cerror 	<= not button(2) when (decodedswitch(6) = '1') else kbd_cerror;
---k_dot 		<= not button(2) when (decodedswitch(7) = '1') else kbd_key(13);
---k_0			<= '1' when (enable_serialtrace = '1') else kbd_key(12); -- Note that not available with debug "keyboard"
-
 -- intersect digit scans with the keys to drive kx lines
 kbdmux: mux11x4 port map 
 	(
@@ -638,13 +627,13 @@ kbdmux: mux11x4 port map
 		--------------------------------------------------------------------
 		--								 BOTH  			TI					  SINCLAIR
 		--------------------------------------------------------------------
-		x(35 downto 32) => '1' & kbd_key(0)  & not button(2) 	& not button(2),
+		x(35 downto 32) => '1' & kbd_key(0)  & not btn_clear 	& not btn_clear,
 		x(31 downto 28) => '1' & kbd_key(1)  & kbd_key(14) 	& kbd_key(13),
 		x(27 downto 24) => '1' & kbd_key(2)  & kbd_key(3) 		& kbd_key(11),
 		x(23 downto 20) => '1' & kbd_key(4)  & kbd_key(7) 		& kbd_key(15),
 		x(19 downto 16) => '1' & kbd_key(5)  & kbd_key(11) 	& kbd_key(7),
 		x(15 downto 12) => '1' & kbd_key(6)  & kbd_key(15) 	& kbd_key(3),
-		x(11 downto 8)  => '1' & kbd_key(8)  & not button(1) 	& not button(1),
+		x(11 downto 8)  => '1' & kbd_key(8)  & not btn_centry & not btn_up,
 		x(7 downto 4)   => '1' & kbd_key(9)  & kbd_key(13) 	& kbd_key(14),
 		x(3 downto 0)   => '1' & kbd_key(10) & kbd_key(12) 	& kbd_key(12),
 		--------------------------------------------------------------------
@@ -654,56 +643,6 @@ kbdmux: mux11x4 port map
 		y(0) => ko_sinclair	-- ko for Sinclair
 	);
 
-	kb <= ko_sinclair when (sinclair = '1') else ko_ti;
+	kb <= ko_sinclair when (sw_sinclair = '1') else ko_ti;
 	
---ps2kbd: ps2 port map 
---		(
---		 clk_i => CLK,   	-- Global clk
---		 rst_i => nReset,  -- GLobal Asinchronous reset
---
---		 data_o    => ps2_code,		-- Data in
---		 data_i    => X"00",  		-- Data out
---		 ibf_clr_i => button(1),  	-- Ifb flag clear input
---		 obf_set_i => '0',  			-- Obf flag set input
---		 ibf_o     => ps2_pulse,  	-- Received data available
---		 obf_o     => open,  		-- Data ready to sent
---
---		 frame_err_o  => open,  -- Error receiving data
---		 parity_err_o => open,  -- Error in received data parity
---		 busy_o       => open,  -- uart busy
---		 err_clr_i 	  => '0',  	-- Clear error flags
---
---		 wdt_o => open,  -- Watchdog timer out every 400uS
---
---		 ps2_clk_io  => PS2_CLOCK,   -- PS2 Clock line
---		 ps2_data_io => PS2_DATA	  -- PS2 Data line
---		);
-
---ps2_key: process(reset, ps2_pulse, ps2_code)
---begin
---	if (reset = '1') then
---		ps2_scan <= X"BEEF";
---	else
---		if (rising_edge(ps2_pulse)) then
---			ps2_scan <= std_logic_vector(unsigned(ps2_scan) + 1);
---			--ps2_scan(15 downto 8) <= ps2_scan(7 downto 0);
---			--ps2_scan(7 downto 0) <= ps2_code;
---		end if;
---	end if;
---end process;
-
---kbd: ps2_keyboard generic map
---	(
---		clk_freq => 50_000_000, --system clock frequency in Hz
---		debounce_counter_size => 8         --set such that (2^size)/clk_freq = 5us (size = 8 for 50MHz)
---	)
---	port map
---	(
---		 clk          => CLK,          --system clock
---		 ps2_clk      => PS2_CLOCK,    --clock signal from PS/2 keyboard
---		 ps2_data     => PS2_DATA,     --data signal from PS/2 keyboard
---		 ps2_code_new => ps2_pulse,    --flag that new PS/2 code is available on ps2_code bus
---		 ps2_code     => ps2_code 		 --code received from PS/2
---	);
-
 end;

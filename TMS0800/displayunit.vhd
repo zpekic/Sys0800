@@ -41,6 +41,7 @@ entity displayunit is
 			  show_error: in STD_LOGIC;
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
+			  digit0: out STD_LOGIC;
 			  digit10: out STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0));
 end displayunit;
@@ -136,6 +137,7 @@ begin
 -- drive scan - note that even in debug output mode, nDigit lines drive keyboard correctly
 -- but the segments display debug selection 
 nDigit 	<= scanentry(13 downto 5);
+digit0	<= not scanentry(13);
 digit10 	<= not scanentry(4);
 
 -- data path
@@ -171,13 +173,16 @@ drive_scan: process(clk, reset, scan_cnt, sinclair)
 begin
 	if (reset = '1') then
 		scan_cnt <= 9;
+		--scanentry  <= scantable(9);
 	else
 		if (rising_edge(clk)) then
 			if (scan_cnt = 0) then
 				scan_cnt <= 9;
+				--scanentry  <= scantable(9);
 				blank_propagate <= not sinclair;
 			else
 				scan_cnt <= scan_cnt - 1;
+				--scanentry  <= scantable(scan_cnt - 1);
 				blank_propagate <= blank_propagate and blank;
 			end if;
 		end if;

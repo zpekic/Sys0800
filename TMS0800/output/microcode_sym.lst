@@ -49,11 +49,11 @@
 -- 
 18: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-19: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 1C;
+19: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 1C;
 -- 
 1A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = a[e]; if(charsent) then goto 3F else repeat;
 -- 
-1B: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 19;
+1B: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 19;
 -- 
 1C: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
@@ -61,11 +61,11 @@
 -- 
 1E: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-1F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 22;
+1F: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 22;
 -- 
 20: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = b[e]; if(charsent) then goto 3F else repeat;
 -- 
-21: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 1F;
+21: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 1F;
 -- 
 22: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
@@ -73,39 +73,39 @@
 -- 
 24: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-25: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 28;
+25: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 28;
 -- 
 26: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = c[e]; if(charsent) then goto 3F else repeat;
 -- 
-27: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 25;
+27: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 25;
 -- 
 28: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-29: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
+29: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'A'; if(charsent) then goto 3F else repeat;
 -- 
-2A: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+2A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
 2B: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-2C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 2F;
+2C: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 2F;
 -- 
 2D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = aflag[e]; if(charsent) then goto 3F else repeat;
 -- 
-2E: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 2C;
+2E: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 2C;
 -- 
 2F: e <= 011111111111, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
-30: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
+30: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'B'; if(charsent) then goto 3F else repeat;
 -- 
-31: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
+31: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = 'F'; if(charsent) then goto 3F else repeat;
 -- 
 32: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = '='; if(charsent) then goto 3F else repeat;
 -- 
-33: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 36;
+33: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 36;
 -- 
 34: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = bflag[e]; if(charsent) then goto 3F else repeat;
 -- 
-35: e <= e / 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 33;
+35: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 33;
 -- 
 36: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = ' '; if(charsent) then goto 3F else repeat;
 -- 
@@ -117,21 +117,21 @@
 -- 
 3A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = cflag; if(charsent) then goto 3F else repeat;
 -- 
-3B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
+3B: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-3C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = CR; if(charsent) then goto 3F else repeat;
+3C: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = CR; if(charsent) then goto 3F else repeat;
 -- 
-3D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = LF; if(charsent) then goto 3F else repeat;
+3D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; txd = LF; if(charsent) then goto 3F else repeat;
 -- 
-3E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 03;
+3E: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 03;
 -- 
-3F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; return;
+3F: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; return;
 -- 
-40: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+40: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
-41: flag[e, dst] <= 0; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
+41: flag[e, dst] <= 0; ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-42: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 40;
+42: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 40;
 -- 
 43: ss = off; dst <= dst; alu_y = s(alu_sel); alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
@@ -139,37 +139,37 @@
 -- 
 45: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 43;
 -- 
-46: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(dk) then goto 08 else goto 09;
+46: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(dk) then goto 08 else goto 09;
 -- 
-47: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(keystrobe) then goto 08 else goto 09;
+47: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(keystrobe) then goto 08 else goto 09;
 -- 
 48: -- halt
 -- 
-49: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+49: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 4A: reg[e, dst] <= reg[e, dst] * 2, ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 4B: e <= e / 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 49;
 -- 
-4C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+4C: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 4D: reg[e, dst] <= reg / 2, ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 4E: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 4C;
 -- 
-4F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+4F: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 50: flag[e, dst] <= !flag[e, dst]; ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 51: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 4F;
 -- 
-52: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+52: reg[e, dst] <= alu_y, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 53: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = adcbcd(alu_sel); alu_sel <= alu_sel; next;
 -- 
 54: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 52;
 -- 
-55: reg[e, dst] <= alu_y, dst <= a; alu_y = 0; alu_sel <= ab; if(e11) then next else goto 09;
+55: reg[e, dst] <= alu_y, ss = off; dst <= a; alu_y = 0; alu_sel <= ab; if(e11) then next else goto 7B;
 -- 
 56: reg[e, dst] <= alu_y, ss = off; update; dst <= b; alu_y = xor(alu_sel); alu_sel <= alu_sel; next;
 -- 
@@ -179,37 +179,37 @@
 -- 
 59: e <= e * 2, ss = off; dst <= nul; alu_y = 0; alu_sel <= alu_sel; goto 55;
 -- 
-5A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+5A: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 5B: ss = off; dst <= dst; cflag <= cflag | (bf & mask); alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 5C: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 5A;
 -- 
-5D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+5D: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 5E: ss = off; dst <= dst; cflag <= cflag | (af & mask); alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 5F: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 5D;
 -- 
-60: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+60: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 61: ss = off; dst <= dst; cflag <= cflag | (af ^ bf); alu_y = 0; alu_sel <= alu_sel; next;
 -- 
 62: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 09 else goto 60;
 -- 
-63: dst <= aflag; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+63: ss = off; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
-64: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= bflag; alu_y = 0; alu_sel <= alu_sel; next;
+64: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; ss = off; update; dst <= bflag; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-65: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; next;
+65: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; ss = off; update; dst <= aflag; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-66: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
+66: flag[e, dst] <= flag[e, af] ^ flag[e, bf]; ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
-67: e <= e * 2, dst <= nul; alu_y = 0; alu_sel <= alu_sel; goto 63;
+67: e <= e * 2, ss = off; dst <= nul; alu_y = 0; alu_sel <= alu_sel; goto 63;
 -- 
-68: dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; goto 09;
+68: ss = off; dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; goto 09;
 -- 
-69: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+69: ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
 6A: flag[e, dst] <= 0; ss = off; update; dst <= dst; alu_y = 0; alu_sel <= alu_sel; next;
 -- 
@@ -217,19 +217,19 @@
 -- 
 6C: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 69;
 -- 
-6D: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
+6D: reg[e, dst] <= alu_y, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 09;
 -- 
-6E: reg[e, dst] <= alu_y, update; dst <= dst; cflag <= alu_cout; alu_y = sbcbcd(alu_sel); alu_sel <= alu_sel; next;
+6E: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = sbcbcd(alu_sel); alu_sel <= alu_sel; next;
 -- 
-6F: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 6D;
+6F: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 6D;
 -- 
-70: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 68;
+70: reg[e, dst] <= alu_y, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 68;
 -- 
 71: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = adchex(alu_sel); alu_sel <= alu_sel; next;
 -- 
 72: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 70;
 -- 
-73: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 68;
+73: reg[e, dst] <= alu_y, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 68;
 -- 
 74: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = sbchex(alu_sel); alu_sel <= alu_sel; next;
 -- 
@@ -237,87 +237,87 @@
 -- 
 76: reg[e, dst] <= alu_y, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(e11) then next else goto 79;
 -- 
-77: reg[e, dst] <= alu_y, ss = off; update; dst <= dst; cflag <= alu_cout; alu_y = adcbcd(alu_sel); alu_sel <= alu_sel; next;
+77: reg[e, dst] <= alu_y, update; dst <= dst; cflag <= alu_cout; alu_y = adcbcd(alu_sel); alu_sel <= alu_sel; next;
 -- 
-78: e <= e * 2, ss = off; dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 76;
+78: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 76;
 -- 
 79: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(kn) then next else goto 09;
 -- 
 7A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(digit10) then goto 04 else goto 02;
 -- 
-7B: -- halt
+7B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(digit10) then goto 09 else next;
 -- 
-7C: -- halt
+7C: dst <= dst; sync = pulse; alu_y = 0; alu_sel <= alu_sel; goto 7B;
 -- 
 7D: -- halt
 -- 
 7E: -- halt
 -- 
-7F: dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; if(digit10) then goto 09 else goto 02;
+7F: ss = off; dst <= dst; cflag <= 0; alu_y = 0; alu_sel <= alu_sel; if(digit10) then goto 09 else goto 02;
 --BC0 
 80: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
 --BC0 
-81: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+81: dst <= b; cflag <= 0; alu_y = 0; alu_sel <= cb; goto 52;
 --BC0 
-82: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+82: dst <= a; cflag <= 0; alu_y = 0; alu_sel <= cb; goto 6D;
 --BC0 
-83: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+83: dst <= b; cflag <= 0; alu_y = 0; alu_sel <= ck; goto 6D;
 --BC0 
-84: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+84: dst <= c; cflag <= 0; alu_y = 0; alu_sel <= ab; goto 52;
 --BC0 
-85: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+85: dst <= c; cflag <= 0; alu_y = 0; alu_sel <= cb; goto 52;
 --BC0 
-86: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+86: -- halt
 --BC0 
-87: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+87: -- halt
 --BC0 
-88: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+88: -- halt
 --BC0 
-89: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+89: -- halt
 --BC0 
-8A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8A: -- halt
 --BC0 
-8B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8B: -- halt
 --BC0 
-8C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8C: -- halt
 --BC0 
-8D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8D: -- halt
 --BC0 
-8E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8E: -- halt
 --BC0 
-8F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+8F: -- halt
 --BC0 
-90: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+90: -- halt
 --BC0 
-91: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+91: -- halt
 --BC0 
-92: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+92: -- halt
 --BC0 
-93: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+93: -- halt
 --BC0 
-94: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+94: -- halt
 --BC0 
-95: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+95: -- halt
 --BC0 
-96: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+96: -- halt
 --BC0 
-97: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+97: -- halt
 --BC0 
-98: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+98: -- halt
 --BC0 
-99: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+99: -- halt
 --BC0 
-9A: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9A: -- halt
 --BC0 
-9B: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9B: -- halt
 --BC0 
-9C: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9C: -- halt
 --BC0 
-9D: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9D: -- halt
 --BC0 
-9E: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9E: -- halt
 --BC0 
-9F: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 05 else goto 07;
+9F: -- halt
 --BC1 
 A0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
@@ -381,7 +381,7 @@ BD: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 
 --BC1 
 BE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
 --BC1 
-BF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(cflag) then goto 07 else goto 05;
+BF: -- halt
 --BKO 
 C0: dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(ko) then goto 05 else goto 07;
 --BKO 
@@ -453,7 +453,7 @@ E1: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 52;
 --AAKC 
 E2: e <= e * 2, dst <= c; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 52;
 --ABOA 
-E3: e <= e * 2, dst <= a; alu_y = 0; alu_sel <= ab; goto 43;
+E3: e <= e * 2, dst <= a; alu_y = 0; alu_sel <= ab; if(sinclair) then goto 81 else goto 43;
 --ABOC 
 E4: e <= e * 2, dst <= c; alu_y = 0; alu_sel <= ab; goto 43;
 --ACKA 
@@ -501,12 +501,12 @@ F9: e <= e * 2, dst <= c; alu_y = 0; alu_sel <= alu_sel; goto 4C;
 --AKCN 
 FA: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 76;
 --AAKAH 
-FB: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 70;
+FB: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; if(sinclair) then goto 82 else goto 70;
 --SAKAH 
-FC: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; goto 73;
+FC: e <= e * 2, dst <= a; cflag <= 0; alu_y = 0; alu_sel <= ak; if(sinclair) then goto 83 else goto 73;
 --ACKC 
 FD: e <= e * 2, dst <= c; cflag <= 0; alu_y = 0; alu_sel <= ck; goto 52;
---??? 
-FE: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 09;
---??? 
-FF: dst <= dst; alu_y = 0; alu_sel <= alu_sel; goto 09;
+--NOP 
+FE: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(sinclair) then goto 84 else goto 09;
+--NOP 
+FF: e <= e * 2, dst <= dst; alu_y = 0; alu_sel <= alu_sel; if(sinclair) then goto 85 else goto 09;

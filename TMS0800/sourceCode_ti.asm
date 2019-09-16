@@ -4,6 +4,10 @@
 //Add * after the last binary digit of instruction to generate breakpoint for TMS0800
 //-----------------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------------
+// This file has been manually modified to include "*" breakpoint at start of operation. Re-running AsmGenerator may overwrite this file and clear them
+//-----------------------------------------------------------------------------------
+
 // TI calculator simulator
 // Ken Shirriff, http://righto.com/ti
 // Based on patent US3934233
@@ -72,7 +76,7 @@
 0 0011 1010 003A	11 00110 1100 .FD5     ACKB   MANT  
 0 0011 1011 003B	11 11101 1101          ACKC   EXP1  
 0 0011 1100 003C	10 10010 1000          WAITNO FD4   
-0 0011 1101 003D	10 10011 0001 .MINKEY  SFB    OP2    ; MINUS = flags II, III
+0 0011 1101 003D	10 10011 0001*.MINKEY  SFB    OP2    ; MINUS = flags II, III
 0 0011 1110 003E	10 11010 0011          TFA    F3     ; If CD is clear...
 0 0011 1111 003F	00 00100 1101          BIZ    PLSKEY ; perform subtract operation
 0 0100 0000 0040	10 11010 0100          TFA    F4     ; Or EQ is clear...
@@ -86,9 +90,9 @@
 0 0100 1000 0048	11 00001 0000          AAKA   DPT7   ; Set A exponent to 7
 0 0100 1001 0049	10 11000 0011          ZFA    F3     ; Clear CD
 0 0100 1010 004A	00 00000 0111          BET    S      ; Update display
-0 0100 1011 004B	10 10011 0001 .DIVKEY  SFB    OP2    ; DIV = flags II, III
-0 0100 1100 004C	10 10011 0000 .MLTKEY  SFB    OP1    ; MULT = flags I, III
-0 0100 1101 004D	10 10011 0010 .PLSKEY  SFB    OP3    ; PLUS = flag III
+0 0100 1011 004B	10 10011 0001*.DIVKEY  SFB    OP2    ; DIV = flags II, III
+0 0100 1100 004C	10 10011 0000*.MLTKEY  SFB    OP1    ; MULT = flags I, III
+0 0100 1101 004D	10 10011 0010*.PLSKEY  SFB    OP3    ; PLUS = flag III
 0 0100 1110 004E	10 11010 0011          TFA    F3     ; Clear display flag
 0 0100 1111 004F	01 00101 0010          BIO    KS1   
 0 0101 0000 0050	10 11010 0100          TFA    F4     ; Equal flag

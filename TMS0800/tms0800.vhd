@@ -68,12 +68,14 @@ component displayunit is
 			  show_error: in STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
+			  digit0: out STD_LOGIC;
 			  digit10: out STD_LOGIC;
 			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0));
 end component;
 
 component rom512x12 is
 	 Generic (
+			fill_value: std_logic_vector(11 downto 0);
 			sinclair_mode: boolean;
 			asm_filename: string;
 			lst_filename: string
@@ -134,13 +136,13 @@ component mux11x4 is
            y : out  STD_LOGIC_VECTOR (3 downto 0));
 end component;
 
-component freqmux is
-    Port ( reset : in  STD_LOGIC;
-           f0in : in  STD_LOGIC;
-           f1in : in  STD_LOGIC;
-           sel : in  STD_LOGIC;
-           fout : out  STD_LOGIC);
-end component;
+--component freqmux is
+--    Port ( reset : in  STD_LOGIC;
+--           f0in : in  STD_LOGIC;
+--           f1in : in  STD_LOGIC;
+--           sel : in  STD_LOGIC;
+--           fout : out  STD_LOGIC);
+--end component;
 
 type hex2ascii is array (0 to 15) of std_logic_vector(7 downto 0);
 constant h2a: hex2ascii :=(
@@ -201,7 +203,13 @@ constant km_sinclair: masktable :=(
     X"FFFF4FFFFFF", -- M14 = DIGIT4
     X"FFFF0FFFFFF"  -- M15 = DIGIT
 	 );
-	 
+	
+constant NOP16: 			std_logic_vector(11 downto 0) := "01001000XXXX";  
+constant NOP30: 			std_logic_vector(11 downto 0) := "01011110XXXX";
+constant BREAK: 			std_logic_vector(11 downto 0) := "100000000000"; -- OR mask for breakpoint!
+--1 0011 1111 013F	00 10001 0110          BIE    ALOGDIV ; BET divide and finish up ALOG
+constant BIE_ALOGDIV:	std_logic_vector(11 downto 0) := "000100010110"; 
+	
 signal mask: std_logic_vector(10 downto 0);
 signal k, km_current: std_logic_vector(43 downto 0);
 
@@ -218,7 +226,7 @@ signal af_xor_bf: std_logic_vector(10 downto 0);
 signal a_selected, b_selected, c_selected, k_selected: std_logic_vector(3 downto 0);
 signal af_selected, bf_selected: std_logic;
 signal mask_selected: std_logic;
-signal digit10: std_logic;
+signal digit0, digit10: std_logic;
 signal hex: std_logic_vector(3 downto 0);
 
 -- instruction being executed
@@ -238,6 +246,7 @@ signal enable_b: std_logic_vector(10 downto 0);
 signal enable_c: std_logic_vector(10 downto 0);
 signal enable_af: std_logic_vector(10 downto 0);
 signal enable_bf: std_logic_vector(10 downto 0);
+
 -- 4-bit ALU outputs ----------------------------
 signal alu_y: std_logic_vector(3 downto 0);
 signal alu_cout: std_logic;
@@ -272,6 +281,9 @@ signal u_addr: std_logic_vector(7 downto 0);
 --signal breakpoint: std_logic;
 --signal ascii_offset, ascii_hex: std_logic_vector(7 downto 0);
 
+--signal du_digit : STD_LOGIC_VECTOR (8 downto 0);
+--signal du_segment : STD_LOGIC_VECTOR(7 downto 0);
+
 begin
 
 du: displayunit port map 
@@ -287,10 +299,15 @@ du: displayunit port map
 		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero)
 		nDigit => nDigit,
 		segment => segment,
+		digit0 => digit0,
 		digit10 => digit10,
 		dbg_select => dbg_select
 );
-			  
+		
+-- HACKHACK!!
+--du_reset <= '1' when (u_addr = X") else reset;
+		
+		
 -- Program counter and instruction -------------------------------------------------------
 update_pc: process(clk_cpu, reset, pc_verb, instruction)
 begin
@@ -316,9 +333,8 @@ end process;
 prog_ti: rom512x12
 		generic map
 		(
+			fill_value => NOP30,
 			sinclair_mode => false,	-- hint to show correct disassembled listing (TI instructions)
-			--asm_filename => "./ti_source.asm",
-			--lst_filename => "./tms0800/output/ti_source.lst"
 			asm_filename => "./sourceCode_ti.asm",
 			lst_filename => "./tms0800/output/sourceCode_ti.lst"
 		)	
@@ -331,6 +347,13 @@ prog_ti: rom512x12
 prog_sinclair: rom512x12
 		generic map
 		(
+-- HACKHACK: Why is this "random instruction" being passed in to intitialize the ROM???
+-- Last instruction in Sinclair ROM as 0x13F is "BINE ALOGDIV" - however in some cases
+-- CF is 0 which means it will not be executed and execution will continue at 0x140, which 
+-- will bring it back to the right place, instead of executing bad opcodes, or NOPs which 
+-- would wrap up to reset location 0. This is indication of another bug but for now this
+-- "works". 
+			fill_value => BIE_ALOGDIV,
 			sinclair_mode => true, -- hint to show correct disassembled listing (Sinclair mode)
 			asm_filename => "./sourceCode_sinclair.asm",
 			lst_filename => "./tms0800/output/sourceCode_sinclair.lst"
@@ -366,12 +389,19 @@ end process;
 
 -- display / keyboard sync ----------------------------
 clk_scan <= '0' when (sync_verb = pulse) else '1';
+--nDigit <= "111111111" when (clk_scan = '1') else du_digit;
+--segment <= "00000000" when (clk_scan = '1') else du_segment;
+--clean_display: process(clk_cpu, du_digit, du_segment)
+--begin
+--	if (falling_edge(clk_scan)) then
+--		nDigit <= du_digit;
+--		segment <= du_segment;
+--	end if;
+--end process;
+
 			 
 --dbg_state <= ka & kb & kc & kd;
 dbg_state <= kb & kc & keystrobe & digit10;
-
--------------------------------------------------------
---breakpoint <= breakpoint_enable and i_breakpoint; -- break whenever instruction bit 11 is set!
 
 cu: controlunit port map 
 	( 
@@ -391,7 +421,7 @@ cu: controlunit port map
       condition(cond_sinclair) => sinclair,						
       condition(cond_dk) => '1',						-- as if DisplayKey is stuck == display always on
       condition(cond_3) => '0',
-      condition(cond_2) => '0',
+      condition(cond_digit0) => digit0,
       condition(cond_breakpoint) => breakpoint_ack,
       condition(cond_true) => '1', -- hard-code "true" for condition 0
 		u_code => u_code,
@@ -403,7 +433,8 @@ cu: controlunit port map
 af_xor_bf <= flag_a xor flag_b;
 
 -- hint to clock logic outside (disable single step when in trace code, or when microcode does it)
-singlestep_disable <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
+--singlestep_disable <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
+singlestep_disable <= ss_disable;
 
 -- enables for each digit or bit in the SAM are at "intersection" of digit and register enabled line --
 -- when the "master write" from microcode is 1. Note these are all active 0 																		  --
@@ -725,9 +756,6 @@ with tu_char(3 downto 0) select
 				dbg_in(11 downto 8)					when t_dbgin2,
 				dbg_in(15 downto 12)					when t_dbgin3;
 	
---ascii_hex <= X"3" & hex;
---ascii_offset <= X"07" when hex(3) = '1' and (hex(2) = '1' or hex(1) = '1') else X"00";
-
 -- if input >127 then it is from mux, otherwise transmit directly
 setTrace: process(clk_cpu, tu_char, hex)
 begin

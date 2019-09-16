@@ -34,6 +34,7 @@ use work.tms0800_package.all;
 
 entity rom512x12 is
 	 Generic (
+			fill_value: std_logic_vector(11 downto 0);
 			sinclair_mode: boolean;
 			asm_filename: string;
 			lst_filename: string);
@@ -43,10 +44,6 @@ entity rom512x12 is
 end rom512x12;
 
 architecture Behavioral of rom512x12 is
-
-constant NOP16: std_logic_vector(11 downto 0) := "X1001000XXXX";  
-constant NOP30: std_logic_vector(11 downto 0) := "X1011110XXXX";
-constant BREAK: std_logic_vector(11 downto 0) := "100000000000"; -- OR mask for breakpoint!
 
 alias a9: std_logic_vector(8 downto 0) is address(8 downto 0);
 
@@ -229,7 +226,7 @@ begin
 	return temp_mem;
 end init_wordmemory;
 	
-signal data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, NOP30 or BREAK, sinclair_mode);
+signal data_from_file: rom_array := init_wordmemory(asm_filename, lst_filename, 512, fill_value, sinclair_mode);
 attribute rom_style : string;
 attribute rom_style of data_from_file : signal is "block";
 

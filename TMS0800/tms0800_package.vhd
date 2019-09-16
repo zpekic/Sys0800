@@ -176,7 +176,7 @@ constant cond_digit10: 		integer := 6;
 constant cond_sinclair:		integer := 5;
 constant cond_dk: 			integer := 4;
 constant cond_3: 				integer := 3;
-constant cond_2: 				integer := 2;
+constant cond_digit0: 		integer := 2;
 constant cond_breakpoint: 	integer := 1;
 constant cond_true: 			integer := 0;
 

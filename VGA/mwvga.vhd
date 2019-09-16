@@ -34,6 +34,7 @@ entity mwvga is
     Port ( reset : in  STD_LOGIC;
            clk : in  STD_LOGIC;
            rgbBorder : in  STD_LOGIC_VECTOR (7 downto 0);
+			  field: in STD_LOGIC_VECTOR(1 downto 0);
 			  din: in STD_LOGIC_VECTOR (7 downto 0);
            hactive : buffer  STD_LOGIC;
            vactive : buffer  STD_LOGIC;
@@ -51,6 +52,21 @@ component chargen_rom is
     Port ( a : in  STD_LOGIC_VECTOR (10 downto 0);
            d : out  STD_LOGIC_VECTOR (7 downto 0));
 end component;
+
+type rom4 is array(0 to 3) of std_logic_vector(7 downto 0);
+constant palette1: rom4 :=(
+	color8_red,
+	color8_cyan,
+	color8_blue,
+	color8_black
+);
+
+constant palette0: rom4 :=(
+	color8_black,
+	color8_blue,
+	color8_cyan,
+	color8_red
+);
 
 signal color: std_logic_vector(7 downto 0);
 signal pattern: std_logic_vector(7 downto 0);
@@ -73,7 +89,8 @@ y <= v(10 downto 3);
 
 active <= hactive and vactive;
 rgb <= rgbBorder when (active = '0') else color;
-color <= color8_cyan when (pixel = '1') else color8_blue;
+--color <= color8_cyan when (pixel = '1') else color8_blue;
+color <= palette1(to_integer(unsigned(field))) when (pixel = '1') else palette0(to_integer(unsigned(field)));
 
 h_clk <= clk;
 h_drive: process(reset, h_clk)

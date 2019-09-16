@@ -254,8 +254,8 @@ begin
 				return "if(dk) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_3 =>
 				return "if(c3) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
-			when cond_2 =>
-				return "if(c2) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
+			when cond_digit0 =>
+				return "if(digit0) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_breakpoint =>
 				return "if(breakpoint) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_true =>
@@ -455,138 +455,192 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 
 ----- BEGIN TRACER ROUTINE ------------------	
 		TRACE =>
+			uc_ss(ss_off) or
 			uc_tracechar('P'),
 		11 =>
+			uc_ss(ss_off) or
 			uc_tracechar('C'),
 		12 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		13 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_pc2),	-- program counter
 		14 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_pc1),
 		15 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_pc0),
 
 		16 =>
+			uc_ss(ss_off) or
 			uc_tracechar(' '),
 		17 =>
+			uc_ss(ss_off) or
 			uc_tracechar('I'),
 		18 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		19 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_instr2), -- current instruction
 		20 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_instr1),
 		21 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_instr0),
 
 		22 =>
+			uc_ss(ss_off) or
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		23 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_tracechar('A'),
 		24 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		25 =>
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(28)),
 		26 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_a), -- display a register
 		27 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_goto(uc_label(25)),
 
 		28 =>
+			uc_ss(ss_off) or
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		29 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_tracechar('B'),
 		30 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		31 =>
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(34)),
 		32 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_b), -- display b register
 		33 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_goto(uc_label(31)),
 
 		34 =>
+			uc_ss(ss_off) or
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		35 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_tracechar('C'),
 		36 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		37 =>
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(40)),
 		38 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_c), -- display c register
 		39 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_goto(uc_label(37)),
 
 		40 =>
+			uc_ss(ss_off) or
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		41 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_tracechar('A'),
 		42 =>
+			uc_ss(ss_off) or
 			uc_tracechar('F'),
 		43 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		44 =>
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(47)),
 		45 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_af), -- display aflag register
 		46 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_goto(uc_label(44)),
 
 		47 =>
+			uc_ss(ss_off) or
 			uc_e(e_init) or
 			uc_tracechar(' '),
 		48 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_tracechar('B'),
 		49 =>
+			uc_ss(ss_off) or
 			uc_tracechar('F'),
 		50 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		51 =>
+			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(54)),
 		52 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_bf), -- display bflag register
 		53 =>
+			uc_ss(ss_off) or
 			uc_e(e_ror) or 
 			uc_goto(uc_label(51)),
 
 		54 =>
+			uc_ss(ss_off) or
 			uc_tracechar(' '),
 		55 =>
+			uc_ss(ss_off) or
 			uc_tracechar('C'),
 		56 =>
+			uc_ss(ss_off) or
 			uc_tracechar('F'),
 		57 =>
+			uc_ss(ss_off) or
 			uc_tracechar('='),
 		58 =>
+			uc_ss(ss_off) or
 			uc_tracedata(t_cf), -- display cond register
 
 		59 =>
+			uc_ss(ss_off) or
 			uc_goto(upc_next),
 		60 =>
+			uc_ss(ss_off) or
 			uc_setchar(char_CR) or
 			uc_if(cond_charsent, uc_label(CLEARTXD), upc_repeat),
 		61 =>
+			uc_ss(ss_off) or
 			uc_setchar(char_LF) or
 			uc_if(cond_charsent, uc_label(CLEARTXD), upc_repeat),
 		62 =>
+			uc_ss(ss_off) or
 			uc_goto(uc_label(NEXTI)),
 			
 		CLEARTXD => -- subroutine to reset txd to make it ready for next character
+			uc_ss(ss_off) or
 			uc_setchar(char_NULL) or 	-- reset output character
 			uc_goto(upc_return),			-- return to caller
 ----- END TRACER ROUTINE -------------
@@ -682,7 +736,9 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_src(src_ab) or 
 			uc_dst(dst_a) or
 			uc_reg(bcd_fromalu) or
-			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
+			--uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
+			--HACKHACK: EXAB comes before AKCN, so make sure we are at digit10 before continuing
+			uc_if(cond_e11, upc_next, uc_label(123)),
 		86 =>
 			uc_ss(ss_off) or
 			uc_sam(sam_update) or
@@ -830,26 +886,36 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(uc_label(SBCHEX)),
 
 		118 => -- AKCN 
-			uc_ss(ss_off) or
+			--uc_ss(ss_off) or
 			uc_reg(bcd_fromalu) or
 			uc_if(cond_e11, upc_next, uc_label(121)),
 		119 =>
-			uc_ss(ss_off) or
+			--uc_ss(ss_off) or
 			uc_sam(sam_update) or
 			uc_alu(fun_adcbcd) or
 			uc_reg(bcd_fromalu) or
 			uc_cond(cf_cout),
 		120 =>
-			uc_ss(ss_off) or
+			--uc_ss(ss_off) or
 			uc_e(e_rol) or
 			uc_goto(uc_label(118)),
 		121 => -- if kn was down, means we have a correct count in last mantissa, so bail, otherwise continue
-			uc_ss(ss_off) or
+			--uc_ss(ss_off) or
 			uc_if(cond_kn, upc_next, uc_label(CONTINUE)),
 		122 => -- if scanned all, bail with CF = 1 to indicate no key
-			uc_ss(ss_off) or
+			--uc_ss(ss_off) or
 			uc_if(cond_digit10, uc_label(CONTINUECS), uc_label(FORK)), 
 						
+		-- HACKHACK: make sure we are at last digit before continuing!
+		123 =>
+			--uc_ss(ss_off) or
+			uc_if(cond_digit10, uc_label(CONTINUE), upc_next),
+
+		124 => 
+			--uc_ss(ss_off) or
+			uc_sync(pulse) or
+			uc_goto(uc_label(123)),
+			
 		127 => -- SCANNO
 			uc_ss(ss_off) or
 			uc_cond(cf_zero) or

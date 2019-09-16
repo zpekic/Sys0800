@@ -99,7 +99,8 @@ with s select
 			x(15 downto 12) when "0011", -- 3
 			x(11 downto  8) when "0010", -- 2
 			x( 7 downto  4) when "0001", -- 1
-			x( 3 downto  0) when "0000"; -- 0
+			x( 3 downto  0) when "0000", -- 0
+			X"0" when others;
 --			null when others;
 
 end Behavioral;

@@ -86,7 +86,7 @@ mc: microcode
 with u_if select
 	u_condition <= condition(cond_true)  			when "0000",
 						condition(cond_breakpoint)  	when "0001",
-						condition(cond_2)  				when "0010",
+						condition(cond_digit0)  		when "0010",
 						condition(cond_3)  				when "0011",
 						condition(cond_dk)  				when "0100",
 						condition(cond_sinclair)  		when "0101",
