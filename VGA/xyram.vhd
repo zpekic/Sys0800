@@ -34,26 +34,44 @@ entity xyram is
 				 maxrow: integer;
 				 maxcol: integer);
     Port ( clk : in  STD_LOGIC;
-           we : in  STD_LOGIC;
-           x : in  STD_LOGIC_VECTOR (7 downto 0);
-           y : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_we : in  STD_LOGIC;
+           rw_x : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_y : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_din : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_dout : out  STD_LOGIC_VECTOR (7 downto 0);
 			  mode: in STD_LOGIC_VECTOR (7 downto 0);
            nDigit : in  STD_LOGIC_VECTOR (8 downto 0);
            segment : in  STD_LOGIC_VECTOR(7 downto 0);
-           din : in  STD_LOGIC_VECTOR (7 downto 0);
 			  field: buffer STD_LOGIC_VECTOR(1 downto 0);
-           dout : out  STD_LOGIC_VECTOR (7 downto 0));
+           ro_x : in  STD_LOGIC_VECTOR (7 downto 0);
+           ro_y : in  STD_LOGIC_VECTOR (7 downto 0);
+           ro_dout : out  STD_LOGIC_VECTOR (7 downto 0));
 end xyram;
 
 architecture Behavioral of xyram is
+--
+--COMPONENT ram4k8
+--  PORT (
+--    clka : IN STD_LOGIC;
+--    wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--    addra : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+--    dina : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+--    douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+--  );
+--END COMPONENT;
 
-COMPONENT ram4k8
+COMPONENT ram4k8dual IS
   PORT (
     clka : IN STD_LOGIC;
     wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
     addra : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
     dina : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-    douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+    douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    clkb : IN STD_LOGIC;
+    web : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+    addrb : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    dinb : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+    doutb : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
   );
 END COMPONENT;
 
@@ -104,9 +122,10 @@ signal seg_mem: ram16;
 --attribute ram_init_file of vrom : signal is "logo.mif";
 
 signal x_ok, y_ram, y_rom: std_logic;
-signal vram_addr, vrom_addr, y64, y16, x1: std_logic_vector(11 downto 0);
---signal field: std_logic_vector(1 downto 0);
-signal douta, vrom: std_logic_vector(7 downto 0);
+signal vram_addr, vrom_addr, ro_y64, ro_y16, ro_x1: std_logic_vector(11 downto 0);
+signal doutb, vrom: std_logic_vector(7 downto 0);
+
+signal rw_addr, rw_y64, rw_y16, rw_x1: std_logic_vector(11 downto 0);
 
 signal fontmask, sevensegchar: std_logic_vector(7 downto 0);
 signal maskaddress: std_logic_vector(5 downto 0);
@@ -115,32 +134,46 @@ signal write_address: std_logic_vector(3 downto 0);
 
 begin
 
-x_ok <= '1' when (unsigned(x) < maxcol) else '0';
-y_ram <= x_ok when (unsigned(y) < maxrow) else '0';
-y_rom <= x_ok when (unsigned(y) > 56) else '0';
+x_ok <= '1' when (unsigned(ro_x) < maxcol) else '0';
+y_ram <= x_ok when (unsigned(ro_y) < maxrow) else '0';
+y_rom <= x_ok when (unsigned(ro_y) > 56) else '0';
 
-x1 <= "0000" & x;
-y16 <= y & "0000";
-y64 <= y(5 downto 0) & "000000";
-vram_addr <= std_logic_vector(unsigned(y64) + unsigned(y16) + unsigned(x1));	-- a = 80 * y + x
+ro_x1 <= "0000" & ro_x;
+ro_y16 <= ro_y & "0000";
+ro_y64 <= ro_y(5 downto 0) & "000000";
+vram_addr <= std_logic_vector(unsigned(ro_y64) + unsigned(ro_y16) + unsigned(ro_x1));	-- a = 80 * y + x
 vrom_addr <= std_logic_vector(unsigned(vram_addr) - (57 * 80));					-- map to row 57..59
 vrom <= vrom_sinclair(to_integer(unsigned(vrom_addr(7 downto 0)))) when (mode(7) = '1') else vrom_ti(to_integer(unsigned(vrom_addr(7 downto 0))));
 
---update_vram: process(we, y_ram, clk)
---begin
---	if (rising_edge(clk) and we = '1' and y_ram = '1') then
---		vram(to_integer(unsigned(vram_addr))) <= din;
---	end if;
---end process;
+rw_x1 <= "0000" & rw_x;
+rw_y16 <= rw_y & "0000";
+rw_y64 <= rw_y(5 downto 0) & "000000";
+rw_addr <= std_logic_vector(unsigned(rw_y64) + unsigned(rw_y16) + unsigned(rw_x1));	-- a = 80 * y + x
 
-vram: ram4k8 PORT map 
+--vram: ram4k8 PORT map 
+--(
+--    clka => clk, 
+--    wea => "" & we and y_ram & "",
+--    addra => vram_addr,
+--    dina => din,
+--    douta => douta
+--);
+
+vram: ram4k8dual PORT map
 (
-    clka => clk, 
-    wea => "" & we and y_ram & "",
-    addra => vram_addr,
-    dina => din,
-    douta => douta
-);
+	-- for tracer
+    clka => clk,
+    wea => "" & rw_we & "", --"" & we and y_ram & "",
+    addra => rw_addr,
+    dina => rw_din,
+    douta => rw_dout,
+	-- for controller
+    clkb => clk,
+    web => "" & '0' & "",
+    addrb => vram_addr,
+    dinb => X"00",
+    doutb => doutb
+  );
 
 field <= y_rom & y_ram;
 
@@ -163,29 +196,15 @@ begin
 	end if;
 end process;
 
-maskaddress <= y(2 downto 0) & x(2 downto 0);
-fontmask <= sevensegmask(to_integer(unsigned(maskaddress))) and seg_mem(to_integer(unsigned(x(6 downto 3))));
+maskaddress <= ro_y(2 downto 0) & ro_x(2 downto 0);
+fontmask <= sevensegmask(to_integer(unsigned(maskaddress))) and seg_mem(to_integer(unsigned(ro_x(6 downto 3))));
 sevensegchar <= X"20" when (fontmask = X"00") else X"A0";
---nSeg <= '1' when (fontmask = X"00") else '0';
---
---with x(6 downto 3) select
---	nDig <= 	nDigit(8) when X"1",
---				nDigit(7) when X"2",
---				nDigit(6) when X"3",
---				nDigit(5) when X"4",
---				nDigit(4) when X"5",
---				nDigit(3) when X"6",
---				nDigit(2) when X"7",
---				nDigit(1) when X"8",
---				nDigit(0) when X"9",
---				'1' when others;
---				
---sevensegchar <= X"A0" when ((nDig or nSeg) = '0') else X"20";
+
 --	
 with field select
-	dout <= 	douta 			when "01",		-- x < 80, y < 50
-				vrom				when "10",		-- x < 80, y > 56
-				sevensegchar	when others;	-- calculator result display
+	ro_dout <= 	doutb 			when "01",		-- x < 80, y < 50
+					vrom				when "10",		-- x < 80, y > 56
+					sevensegchar	when others;	-- calculator result display
 
 end Behavioral;
 

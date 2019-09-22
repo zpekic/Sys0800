@@ -119,15 +119,15 @@ begin
 		vfp <= X"009";
 	else
 		if (rising_edge(v_clk)) then
-		if (vfp = X"009") then
-			vpulse <= X"FFE"; 	-- -2
-			v <= X"FDD";			-- -(2 + 33)
-			vfp <= X"DFD";			-- 10 - 525
-		else
-			vpulse <= std_logic_vector(unsigned(vpulse) + 1);
-			v <= std_logic_vector(unsigned(v) + 1);
-			vfp <= std_logic_vector(unsigned(vfp) + 1);
-		end if;
+			if (vfp = X"009") then
+				vpulse <= X"FFE"; 	-- -2
+				v <= X"FDD";			-- -(2 + 33)
+				vfp <= X"DFD";			-- 10 - 525
+			else
+				vpulse <= std_logic_vector(unsigned(vpulse) + 1);
+				v <= std_logic_vector(unsigned(v) + 1);
+				vfp <= std_logic_vector(unsigned(vfp) + 1);
+			end if;
 		end if;
 	end if;
 end process;

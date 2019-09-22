@@ -83,25 +83,43 @@ begin
 --s9 <= X"9" when e(9) = '0' else s8;
 --s10 <= X"A" when e(10) = '0' else s9;
 --
-s(3) <= not(e(10) and e(9) and e(8));
-s(2) <= not(e(7) and e(6) and e(5) and e(4));
-s(1) <= not(e(10) and e(7) and e(6) and e(3) and e(2));
-s(0) <= not(e(9) and e(7) and e(5) and e(3) and e(1));
+--s(3) <= not(e(10) and e(9) and e(8));
+--s(2) <= not(e(7) and e(6) and e(5) and e(4));
+--s(1) <= not(e(10) and e(7) and e(6) and e(3) and e(2));
+--s(0) <= not(e(9) and e(7) and e(5) and e(3) and e(1));
+--
+--with s select
+--	y <=	x(43 downto 40) when "1010", -- 10
+--			x(39 downto 36) when "1001", -- 9
+--			x(35 downto 32) when "1000", -- 8
+--			x(31 downto 28) when "0111", -- 7
+--			x(27 downto 24) when "0110", -- 6
+--			x(23 downto 20) when "0101", -- 5
+--			x(19 downto 16) when "0100", -- 4
+--			x(15 downto 12) when "0011", -- 3
+--			x(11 downto  8) when "0010", -- 2
+--			x( 7 downto  4) when "0001", -- 1
+--			x( 3 downto  0) when "0000", -- 0
+--			X"0" when others;
+
+s(3) <= e(10) and e(9) and e(8);
+s(2) <= e(7) and e(6) and e(5) and e(4);
+s(1) <= e(10) and e(7) and e(6) and e(3) and e(2);
+s(0) <= e(9) and e(7) and e(5) and e(3) and e(1);
 
 with s select
-	y <=	x(43 downto 40) when "1010", -- 10
-			x(39 downto 36) when "1001", -- 9
-			x(35 downto 32) when "1000", -- 8
-			x(31 downto 28) when "0111", -- 7
-			x(27 downto 24) when "0110", -- 6
-			x(23 downto 20) when "0101", -- 5
-			x(19 downto 16) when "0100", -- 4
-			x(15 downto 12) when "0011", -- 3
-			x(11 downto  8) when "0010", -- 2
-			x( 7 downto  4) when "0001", -- 1
-			x( 3 downto  0) when "0000", -- 0
+	y <=	x(43 downto 40) when "0101", -- 10
+			x(39 downto 36) when "0110", -- 9
+			x(35 downto 32) when "0111", -- 8
+			x(31 downto 28) when "1000", -- 7
+			x(27 downto 24) when "1001", -- 6
+			x(23 downto 20) when "1010", -- 5
+			x(19 downto 16) when "1011", -- 4
+			x(15 downto 12) when "1100", -- 3
+			x(11 downto  8) when "1101", -- 2
+			x( 7 downto  4) when "1110", -- 1
+			x( 3 downto  0) when "1111", -- 0
 			X"0" when others;
---			null when others;
 
 end Behavioral;
 

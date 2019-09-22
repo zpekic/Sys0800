@@ -131,15 +131,18 @@ component xyram is
 				 maxrow: integer;
 				 maxcol: integer);
     Port ( clk : in  STD_LOGIC;
-           we : in  STD_LOGIC;
-           x : in  STD_LOGIC_VECTOR (7 downto 0);
-           y : in  STD_LOGIC_VECTOR (7 downto 0);
-           mode : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_we : in  STD_LOGIC;
+           rw_x : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_y : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_din : in  STD_LOGIC_VECTOR (7 downto 0);
+           rw_dout : out  STD_LOGIC_VECTOR (7 downto 0);
+			  mode: in STD_LOGIC_VECTOR (7 downto 0);
            nDigit : in  STD_LOGIC_VECTOR (8 downto 0);
            segment : in  STD_LOGIC_VECTOR(7 downto 0);
-           din : in  STD_LOGIC_VECTOR (7 downto 0);
 			  field: buffer STD_LOGIC_VECTOR(1 downto 0);
-           dout : out  STD_LOGIC_VECTOR (7 downto 0));
+           ro_x : in  STD_LOGIC_VECTOR (7 downto 0);
+           ro_y : in  STD_LOGIC_VECTOR (7 downto 0);
+           ro_dout : out  STD_LOGIC_VECTOR (7 downto 0));
 end component;
 --
 component vio0800_microcode is
@@ -157,20 +160,6 @@ component vio0800_microcode is
 			  x: out STD_LOGIC_VECTOR(7 downto 0);
 			  y: out STD_LOGIC_VECTOR(7 downto 0));
 end component;
-
---component vio0800 is
---    Port ( reset : in  STD_LOGIC;
---           clk : in  STD_LOGIC;
---           char : in  STD_LOGIC_VECTOR (7 downto 0);
---           char_sent : out STD_LOGIC;
---			  busy_in: in STD_LOGIC;
---			  busy_out: out STD_LOGIC;
---			  we : buffer STD_LOGIC;
---			  din: in STD_LOGIC_VECTOR(7 downto 0);
---			  dout: out STD_LOGIC_VECTOR(7 downto 0);
---			  x: out STD_LOGIC_VECTOR(7 downto 0);
---			  y: out STD_LOGIC_VECTOR(7 downto 0));
---end component;
 
 -------
 -- From: https://www.digikey.com/eewiki/pages/viewpage.action?pageId=28278929#PS/2KeyboardInterface(VHDL)-CodeDownloads
@@ -358,10 +347,10 @@ signal singlestep_disable, singlestep_enable: std_logic;
 signal brk_ack, brk_req: std_logic;
 
 -- VGA
-signal ram_out, ram_in: std_logic_vector(7 downto 0);
-signal controller_x, tracer_x, ram_x: std_logic_vector(7 downto 0);
-signal controller_y, tracer_y, ram_y: std_logic_vector(7 downto 0);
-signal tracer_busy, controller_busy: std_logic;
+signal tracer_out, tracer_in, controller_in: std_logic_vector(7 downto 0);
+signal controller_x, tracer_x: std_logic_vector(7 downto 0);
+signal controller_y, tracer_y: std_logic_vector(7 downto 0);
+--signal tracer_busy, controller_busy, controller_h, controller_v, hs, vs: std_logic;
 signal tracer_we, ram_we: std_logic;
 signal colorband: std_logic_vector(1 downto 0);
 
@@ -385,37 +374,17 @@ begin
 	-- Single step by each clock cycle, slow or fast
 ss_on: clocksinglestepper port map (
 	  reset => Reset,
-	  clock0_in => freq57600,
-	  clock1_in => freq1k,
-	  clock2_in => freq1M5625, --freq2,
-	  clock3_in => freq3M125,
+	  clock3_in => freq1k,
+	  clock2_in => freq57600,
+	  clock1_in => freq6M25,
+	  clock0_in => freq12M5,
 	  clocksel => sw_freqsel,
 	  modesel => singlestep_enable,
 	  singlestep => btn_step,
-	  clock_out => clk_cpu --clk_ss_on
+	  clock_out => clk_cpu
  );
 
 singlestep_enable <= sw_enable_singlestep and (not singlestep_disable);
-
---ss_off: clocksinglestepper port map (
---	  reset => Reset,
---	  clock0_in => freq57600,
---	  clock1_in => freq1k,
---	  clock2_in => freq1M5625, --freq2,
---	  clock3_in => freq3M125,
---	  clocksel => sw_freqsel,
---	  modesel => '0',
---	  singlestep => '1',
---	  clock_out => clk_ss_off
--- );
---
---ss_mux: freqmux Port map ( 
---				reset => reset,
---				f0in => freq57600, --clk_ss_on,
---				f1in => freq57600, --clk_ss_off,
---				sel => disableSs,
---				fout => clk_cpu
---			 );
 
 --debounced: block is
 --begin
@@ -458,9 +427,9 @@ end block;
 		clk => freq25M, 
 		rgbBorder => SW,
 		field => colorband,
-		din => ram_out,
-		hactive => open,
-		vactive => controller_busy,
+		din => controller_in,
+		hactive => open, --controller_h,
+		vactive => open, --controller_v, --controller_busy,
 		x => controller_x,
 		y => controller_y,
 		-- VGA connections
@@ -478,23 +447,21 @@ end block;
 		maxcol => 80	 
 	)
 	port map (
-		clk => freq25M,
-		we => ram_we,
-		x => ram_x,
-		y => ram_y,
+		clk => CLK, --freq25M,
+		rw_we => tracer_we,
+		rw_x => tracer_x,
+		rw_y => tracer_y,
+		rw_din => tracer_out,
+		rw_dout => tracer_in,
 		mode => SW, -- TODO: display on VGA current switch settings
 		nDigit => nDigit,
 		segment => segment,
-		din => ram_in,
 		field => colorband,
-		dout => ram_out
+		ro_x => controller_x,
+		ro_y => controller_y,
+		ro_dout => controller_in
 	);
 
-	-- VGA controller takes precedence when driving the video memory bus
-	ram_x <= controller_x when (controller_busy = '1') else tracer_x;
-	ram_y <= controller_y when (controller_busy = '1') else tracer_y;
-	ram_we <= '0' when (controller_busy = '1') else (tracer_we and tracer_busy);	-- controller always just reads memory for display
-	
 ---- vga debug tracer
 	v_tracer: vio0800_microcode 
 	generic map (
@@ -502,14 +469,14 @@ end block;
 		maxcol => 80)	 
 	port map ( 
 		reset => reset,
-		clk => freq25M,
+		clk => CLK, --freq25M,
 		char => trace_ascii,
 		char_sent => v_tracedone,
-		busy_in => controller_busy,
-		busy_out => tracer_busy,
+		busy_in => '0', --controller_busy,
+		busy_out => open, --tracer_busy,
 		we => tracer_we,
-		din => ram_out,
-		dout => ram_in,
+		din => tracer_in,
+		dout => tracer_out,
 		x => tracer_x,
 		y => tracer_y
 	);
@@ -519,8 +486,6 @@ trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') el
 -- Dual mode calculator (TI Datamath or Sinclair Scientific) -----
 	-- in Sinclair mode, C[lear] key is tied to reset
 	reset_0800 <= reset or (btn_clear and sw_sinclair);
-	-- grant breakpoint only is SW(7) is low (normal operation)
-	-- switching to "on" disables breakpoint but enables single stepping
 	-- Debug sequence - build time:
 	-- (1) Run GetSourceCode.cmd to download TI and Sinclair sources and generate .asm files for both
 	-- (2) Add asterisk (*) after last hex character of instruction in .asm file
@@ -536,7 +501,7 @@ trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') el
 	calculator: tms0800 Port map ( 
 		-- present on original chip
 		reset => reset_0800,
-		clk_cpu => clk_cpu, --clk_ss, 
+		clk_cpu => clk_cpu, 
 		nDigit => nDigit,
 		segment => segment,
 		ka => '1', -- not used
@@ -552,7 +517,6 @@ trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') el
 		breakpoint_req => brk_req,
 		breakpoint_ack => brk_ack,
 		singlestep_disable => singlestep_disable,
-		--dbg_in => sw_show_vgatrace & "000000" & trace_done & trace_ascii, -- using generic debug port to show the trace char 
 		dbg_in => X"FFFF" xor ('1' & kb & kc & "1111" & nDigit), -- using generic debug port to show the keyboard state 
 		dbg_show => sw_show_leddebug,
 		dbg_select(2) => btn_show_upper_digits,
