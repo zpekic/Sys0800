@@ -35,63 +35,18 @@ entity displayunit is
 			  reset: in STD_LOGIC;
 			  sinclair: in STD_LOGIC;
            reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
-           debug : in  STD_LOGIC_VECTOR (31 downto 0);
+           --debug : in  STD_LOGIC_VECTOR (31 downto 0);
            dp_pos : in  STD_LOGIC_VECTOR(3 downto 0);
-           show_debug : in  STD_LOGIC;
+           --show_debug : in  STD_LOGIC;
 			  show_error: in STD_LOGIC;
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
 			  digit0: out STD_LOGIC;
-			  digit10: out STD_LOGIC;
-			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0));
+			  digit10: out STD_LOGIC
+			);
 end displayunit;
 
 architecture Behavioral of displayunit is
-
---component mux11x4 is
---    Port ( e : in  STD_LOGIC_VECTOR (10 downto 0);
---           x : in  STD_LOGIC_VECTOR (43 downto 0);
---           y : out  STD_LOGIC_VECTOR (3 downto 0));
---end component;
-
-type anodepattern is array (0 to 15) of std_logic_vector(7 downto 0);
-constant hexfont: anodepattern :=(
-					pattern0,   --0
-					pattern1,   --1
-					pattern2,   --2
-					pattern3,   --3
-					pattern4,   --4
-					pattern5,   --5
-					pattern6,   --6
-					pattern7,   --7
-					pattern8,   --8
-					pattern9,   --9
-					"01110111",   --A
-					"01111100",   --b
-					"00111001",   --C
-					"01011110",   --d
-					"01111001",   --E
-					"01110001"    --F
-);
-
-constant bcdfont: anodepattern :=(
-					pattern0,   --0
-					pattern1,   --1
-					pattern2,   --2
-					pattern3,   --3
-					pattern4,   --4
-					pattern5,   --5
-					pattern6,   --6
-					pattern7,   --7
-					pattern8,   --8
-					pattern9,   --9
-					"01111001",   -- A (E for "Error")
-					"01010000",   -- B (r for "Error")
-					"01011100",   -- C (o for "Error")
-					"00001000",   --(single segment, should never appear)
-					pattern_minus,   --(show minus sign)
-					pattern_blank    --blanking
-);
 
 type scanpattern is array (0 to 15) of std_logic_vector(13 downto 0);
 constant scantable: scanpattern := (
@@ -116,9 +71,6 @@ constant scantable: scanpattern := (
 signal scan_cnt: integer range 0 to 15;
 signal scan: std_logic_vector(9 downto 0);
 signal blank, blank_propagate: std_logic;
-
-signal hex: std_logic_vector(3 downto 0);
-signal seg_hex: std_logic_vector(7 downto 0);
 
 signal bcd: std_logic_vector(3 downto 0);
 signal seg_data: std_logic_vector(7 downto 0);
@@ -165,7 +117,7 @@ dp_ti <= '1' when (scanentry(3 downto 0) = dp_pos) else '0';
 dp <= dp_sinclair when (sinclair = '1') else dp_ti;
 
 blank <= '0' when (scan_cnt = 1) else not(dp or bcd(3) or bcd(2) or bcd(1) or bcd(0));
-seg_data <= pattern_blank when ((blank and blank_propagate) = '1') else (dp & bcdfont(to_integer(unsigned(bcd)))(6 downto 0));
+segment <= pattern_blank when ((blank and blank_propagate) = '1') else (dp & bcdfont(to_integer(unsigned(bcd)))(6 downto 0));
 			
 -- note that "clk" is a single low pulse coming after each instruction to move the scan forward
 -- (toward LSD) - otherwise it is in high state
@@ -188,22 +140,6 @@ begin
 		end if;
 	end if;
 end process;
-
--- debug path ---
-with dbg_select select
-	hex <= 	debug(3 downto 0) 	when "000", 
-				debug(7 downto 4) 	when "001", 
-				debug(11 downto 8) 	when "010", 
-				debug(15 downto 12) 	when "011", 
-				debug(19 downto 16) 	when "100", 
-				debug(23 downto 20) 	when "101", 
-				debug(27 downto 24) 	when "110", 
-				debug(31 downto 28) 	when "111";
-
-seg_hex <= hexfont(to_integer(unsigned(hex)));
-					
--- select debug or data
-segment <= seg_hex when (show_debug = '1') else seg_data;
 							
 end Behavioral;
 

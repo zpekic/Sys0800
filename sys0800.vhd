@@ -49,10 +49,10 @@ entity sys0800 is
 				-- SW(3) -- enable calculator program breakpoints
 				-- SW(4) -- (not used)
 				-- SW(6 downto 5) -- system clock speed 
-				--   0   0	57600 Hz (close to original calculator frequency)
-				--   0   1	1024 Hz 
-				--   1   0  1.5625 MHz
-				--   1   1  3.125 MHz
+				--   0   0	1024 Hz 
+				--   0   1	57600 Hz (close to original calculator frequency) 
+				--   1   0  6.25 MHz
+				--   1   1  12.5 MHz
 				-- SW(7)
 				--   0   TI Datamath
 				--   1   Sinclair Scientific
@@ -272,10 +272,9 @@ component tms0800 is
 			  breakpoint_req: out STD_LOGIC;
 			  breakpoint_ack: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
-			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
-           dbg_show : in  STD_LOGIC;
-			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
-			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
+			  dbg_mpc: out STD_LOGIC_VECTOR(8 downto 0); -- 9 bit macro-program counter
+			  dbg_upc: out STD_LOGIC_VECTOR(7 downto 0)  -- 8 bit micro-program counter
+			);
 end component;
 
 -- various frequencies
@@ -302,19 +301,19 @@ alias freq6M25: std_logic is fast(2);
 alias freq12M5: std_logic is fast(1);
 alias freq25M: std_logic is fast(0);		-- 25MHz (suitable for 640x480 VGA)
 
-signal reset, nReset, reset_0800: std_logic;
 -- debounced inputs
 --signal switch: std_logic_vector(7 downto 0);
+--signal button: std_logic_vector(3 downto 0);
+
+signal reset, nReset, reset_0800: std_logic;
+
 alias sw_sinclair: std_logic is SW(7);
 alias sw_freqsel: std_logic_vector(1 downto 0) is SW(6 downto 5);
 alias sw_enable_breakpoints: std_logic is SW(3);
 alias sw_enable_singlestep: std_logic is SW(2);
 alias sw_show_leddebug: std_logic is SW(1);
 alias sw_show_vgatrace: std_logic is SW(0);
---alias show_debug: std_logic is switch(4);
---alias enable_serialtrace: std_logic is switch(3);
 
---signal button: std_logic_vector(3 downto 0);
 alias btn_step: std_logic is BTN(3);
 alias btn_clear: std_logic is BTN(2);
 alias btn_centry: std_logic is BTN(1);
@@ -333,24 +332,27 @@ signal kbd_state: std_logic;
 signal pmod_in: std_logic_vector(3 downto 0);
 
 -- display
-signal nDigit: std_logic_vector(8 downto 0);
-signal segment, a2g: std_logic_vector(7 downto 0);
-signal led_debug, led_digit8: std_logic_vector(3 downto 0);
-signal tmsAn, debugAn: std_logic_vector(3 downto 0);
+signal nDigit, tmsDigit, dbgDigit: std_logic_vector(8 downto 0);
+signal segment, tmsSegment, dbgSegment, a2g: std_logic_vector(7 downto 0);
+signal led_digit8: std_logic_vector(1 downto 0);
+--signal led_debug, led_digit8: std_logic_vector(3 downto 0);
+--signal tmsAn, debugAn: std_logic_vector(3 downto 0);
 signal led_flash: std_logic;
+
+-- debug display
+signal tms_mpc: std_logic_vector(8 downto 0);
+signal tms_upc: std_logic_vector(7 downto 0);
+signal dbgHex: std_logic_vector(3 downto 0);
 
 -- other
 signal clk_cpu, clk_ss_on, clk_ss_off: std_logic;
 signal singlestep_disable, singlestep_enable: std_logic;
---signal trace_enable: std_logic;
---signal sinclair: std_logic; -- 0 for TI Datamath, 1 for Sinclair Scientific
 signal brk_ack, brk_req: std_logic;
 
 -- VGA
 signal tracer_out, tracer_in, controller_in: std_logic_vector(7 downto 0);
 signal controller_x, tracer_x: std_logic_vector(7 downto 0);
 signal controller_y, tracer_y: std_logic_vector(7 downto 0);
---signal tracer_busy, controller_busy, controller_h, controller_v, hs, vs: std_logic;
 signal tracer_we, ram_we: std_logic;
 signal colorband: std_logic_vector(1 downto 0);
 
@@ -502,8 +504,8 @@ trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') el
 		-- present on original chip
 		reset => reset_0800,
 		clk_cpu => clk_cpu, 
-		nDigit => nDigit,
-		segment => segment,
+		nDigit => tmsDigit,
+		segment => tmsSegment,
 		ka => '1', -- not used
 		kb => kb,
 		kc => kc,
@@ -517,12 +519,44 @@ trace_done <= v_tracedone; -- and s_tracedone when (enable_serialtrace = '1') el
 		breakpoint_req => brk_req,
 		breakpoint_ack => brk_ack,
 		singlestep_disable => singlestep_disable,
-		dbg_in => X"FFFF" xor ('1' & kb & kc & "1111" & nDigit), -- using generic debug port to show the keyboard state 
-		dbg_show => sw_show_leddebug,
-		dbg_select(2) => btn_show_upper_digits,
-		dbg_select(1 downto 0) => slow(4 downto 3), 
-		dbg_state => led_debug
+		dbg_mpc => tms_mpc,
+		dbg_upc => tms_upc
 	);
+
+-- Data and debug display paths
+driveDbgDisplay: process(reset, freq1k)
+begin
+	if (reset = '1') then
+		dbgDigit <= "011111111";
+	else
+		if (rising_edge(freq1k)) then
+			dbgDigit <= dbgDigit(0) & dbgDigit(8 downto 1); -- shift right 
+		end if;
+	end if;
+end process;
+
+nDigit <= dbgDigit when (sw_show_leddebug = '1') else tmsDigit;
+segment <= dbgSegment when (sw_show_leddebug = '1') else tmsSegment;
+
+dbgmux: mux11x4 port map 
+	(
+		e => "11" & dbgDigit,
+		x(43 downto 40) => X"F", -- not displayed
+		x(39 downto 36) => X"F", -- not displayed
+		x(35 downto 32) => X"F" xor ("11" & kc & kb), -- keyboard sense lines
+		x(31 downto 28) => X"F" xor ("111" & tmsDigit(8)),
+		x(27 downto 24) => X"F" xor tmsDigit(7 downto 4),
+		x(23 downto 20) => X"F" xor tmsDigit(3 downto 0),
+		x(19 downto 16) => "000" & tms_mpc(8),		-- value of macroprogram counter
+		x(15 downto 12) => tms_mpc(7 downto 4),
+		x(11 downto 8)  => tms_mpc(3 downto 0),
+		x(7 downto 4)   => tms_upc(7 downto 4),	-- value of microprogram counter
+		x(3 downto 0)   => tms_upc(3 downto 0),
+		-----------------------------------------
+		y => dbgHex
+	);
+
+dbgSegment <= hexfont(to_integer(unsigned(dbgHex)));
 
 -- Adapt TMS0800 9 digit common cathode display to 4 digit + 4 leds display
 a2g <= X"FF" when (led_flash = '1') else (X"FF" xor segment); 
@@ -535,18 +569,9 @@ A_TO_G(5) <= a2g(1);
 A_TO_G(6) <= a2g(0);
 DOT <= a2g(7);
 
-AN <= debugAn when (sw_show_leddebug = '1') else tmsAn;
-LED <= led_debug(1 downto 0) when (sw_show_leddebug = '1') else led_digit8(1 downto 0);
-
-tmsAn <= nDigit(7 downto 4) when (btn_show_upper_digits = '1') else nDigit(3 downto 0);
-
-with slow(4 downto 3) select
-	debugAn <= 	"1110" when "00",
-					"1101" when "01",
-					"1011" when "10",
-					"0111" when "11";
-
-led_digit8 <= "1111" when (nDigit(8) = '0' and segment = pattern_minus) else "0000";
+AN <= nDigit(7 downto 4) when (btn_show_upper_digits = '1') else nDigit(3 downto 0);
+LED <= (not kc) & (not kb) when (sw_show_leddebug = '1') else led_digit8;
+led_digit8 <= "11" when (tmsDigit(8) = '0' and tmsSegment = pattern_minus) else "00";
 
 -- Adapt TMS0800 scan keyboard
 -- PMOD --- PmodKYPD -- 
@@ -561,7 +586,7 @@ led_digit8 <= "1111" when (nDigit(8) = '0' and segment = pattern_minus) else "00
 -----------------------
 -- hook up PmodKYPD as the keyboard
 PMOD(3 downto 0) <= kbd_col(0) & kbd_col(1) & kbd_col(2) & kbd_col(3); -- when (enable_serialtrace = '0') else txd & "111";
-pmod_in <= PMOD(7 downto 4); -- when (enable_serialtrace = '0') else "1111"; -- prevent stray signals coming in from PMOD if kbd is not attached
+pmod_in <= PMOD(7 downto 4); 
 
 with slow(8 downto 7) select
 	kbd_state <= 	kbd_row(0) when "00",
@@ -585,7 +610,7 @@ end process;
 -- intersect digit scans with the keys to drive kx lines
 kbdmux: mux11x4 port map 
 	(
-		e => "11" & nDigit,
+		e => "11" & tmsDigit,
 		x(43 downto 40) => "1111",
 		x(39 downto 36) => "1111",
 		--------------------------------------------------------------------

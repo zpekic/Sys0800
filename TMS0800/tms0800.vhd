@@ -49,10 +49,9 @@ entity tms0800 is
 			  breakpoint_req: out STD_LOGIC;
 			  breakpoint_ack: in STD_LOGIC;
 			  singlestep_disable: out STD_LOGIC;
-			  dbg_in: in STD_LOGIC_VECTOR(15 downto 0); 
-           dbg_show : in  STD_LOGIC;
-			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0);
-			  dbg_state: out STD_LOGIC_VECTOR(3 downto 0));
+			  dbg_mpc: out STD_LOGIC_VECTOR(8 downto 0);
+			  dbg_upc: out STD_LOGIC_VECTOR(7 downto 0)
+			);
 end tms0800;
 
 architecture Behavioral of tms0800 is
@@ -62,15 +61,16 @@ component displayunit is
 			  reset: in STD_LOGIC;
 			  sinclair: in STD_LOGIC;
            reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
-           debug : in  STD_LOGIC_VECTOR (31 downto 0);
+           --debug : in  STD_LOGIC_VECTOR (31 downto 0);
            dp_pos : in  STD_LOGIC_VECTOR(3 downto 0);
-           show_debug : in  STD_LOGIC;
+           --show_debug : in  STD_LOGIC;
 			  show_error: in STD_LOGIC;
            nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
            segment : out  STD_LOGIC_VECTOR (7 downto 0);
 			  digit0: out STD_LOGIC;
-			  digit10: out STD_LOGIC;
-			  dbg_select: in STD_LOGIC_VECTOR(2 downto 0));
+			  digit10: out STD_LOGIC
+			  --dbg_select: in STD_LOGIC_VECTOR(2 downto 0)
+			);
 end component;
 
 component rom512x12 is
@@ -164,9 +164,10 @@ constant h2a: hex2ascii :=(
 	std_logic_vector(to_unsigned(character'pos('F'), 8))
 	);
 	
-type masktable is array (0 to 15) of std_logic_vector(43 downto 0);
+type masktable is array (0 to 31) of std_logic_vector(43 downto 0);
 
-constant km_ti: masktable :=(
+constant km: masktable :=(
+--	TI Datamath masks ----------------
     X"FFFFFFFFFF7", -- M0 	=	F0/DPT7
     X"FFFFFFFFF4F", -- M1	=	F1/EXPD
     X"FFFFFFFF1FF", -- M2	= 	F2/LSD
@@ -182,10 +183,8 @@ constant km_ti: masktable :=(
     X"000000000FF", -- M12	=	MANT
     X"FFFFFFFFF01", -- M13	=	EXP1
     X"FFFFFFFFF00", -- M14	=	EXP
-    X"00000000000"  -- M15	=	ALL
-	 );
-
-constant km_sinclair: masktable :=(
+    X"00000000000", -- M15	=	ALL
+-- Sinclair Scientific masks ---------
     X"00000000000", -- M0 = ALL
     X"5FFFFFFFFFF", -- M1 = MANT_S5
     X"FF00FFFFFFF", -- M2 = EXP
@@ -202,7 +201,7 @@ constant km_sinclair: masktable :=(
     X"FFFF00001FF", -- M13 = MANTD1
     X"FFFF4FFFFFF", -- M14 = DIGIT4
     X"FFFF0FFFFFF"  -- M15 = DIGIT
-	 );
+);
 	
 constant NOP16: 			std_logic_vector(11 downto 0) := "01001000XXXX";  
 constant NOP30: 			std_logic_vector(11 downto 0) := "01011110XXXX";
@@ -276,15 +275,9 @@ signal keystrobe, keypressed: std_logic;
 -- clocks and sync
 signal clk_scan: std_logic;
 
--- DEBUG only
-signal u_addr: std_logic_vector(7 downto 0);
---signal breakpoint: std_logic;
---signal ascii_offset, ascii_hex: std_logic_vector(7 downto 0);
-
---signal du_digit : STD_LOGIC_VECTOR (8 downto 0);
---signal du_segment : STD_LOGIC_VECTOR(7 downto 0);
-
 begin
+
+dbg_mpc <= pc;	-- make PC available at debug output port
 
 du: displayunit port map 
 (
@@ -292,21 +285,13 @@ du: displayunit port map
 		reset => reset,
 		sinclair => sinclair,
 		reg_a => reg_a(43 downto 8),
-		debug(15 downto 0) => pc(7 downto 0) & u_addr,
-		debug(31 downto 16) => dbg_in,
 		dp_pos => reg_a(3 downto 0),
-		show_debug => dbg_show,
-		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero)
+		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero, Datamath only)
 		nDigit => nDigit,
 		segment => segment,
 		digit0 => digit0,
-		digit10 => digit10,
-		dbg_select => dbg_select
+		digit10 => digit10
 );
-		
--- HACKHACK!!
---du_reset <= '1' when (u_addr = X") else reset;
-		
 		
 -- Program counter and instruction -------------------------------------------------------
 update_pc: process(clk_cpu, reset, pc_verb, instruction)
@@ -369,7 +354,7 @@ instruction <= instruction_sinclair when (sinclair = '1') else instruction_ti;
 -- expose breakpoint bit to the host
 breakpoint_req <= i_breakpoint;
 -- get encoded K (constants) and M (masks) from lookup ROM --		
-km_current <= km_sinclair(to_integer(unsigned(i_mask))) when (sinclair = '1') else km_ti(to_integer(unsigned(i_mask)));
+km_current <= km(to_integer(unsigned(sinclair & i_mask)));
 
 -- process to determine if any key pressed
 set_keystrobe: process(reset, clk_scan, digit10, ka, kb, kc, kd)
@@ -389,20 +374,7 @@ end process;
 
 -- display / keyboard sync ----------------------------
 clk_scan <= '0' when (sync_verb = pulse) else '1';
---nDigit <= "111111111" when (clk_scan = '1') else du_digit;
---segment <= "00000000" when (clk_scan = '1') else du_segment;
---clean_display: process(clk_cpu, du_digit, du_segment)
---begin
---	if (falling_edge(clk_scan)) then
---		nDigit <= du_digit;
---		segment <= du_segment;
---	end if;
---end process;
-
 			 
---dbg_state <= ka & kb & kc & kd;
-dbg_state <= kb & kc & keystrobe & digit10;
-
 cu: controlunit port map 
 	( 
 		clk => clk_cpu,
@@ -426,23 +398,22 @@ cu: controlunit port map
       condition(cond_true) => '1', -- hard-code "true" for condition 0
 		u_code => u_code,
 		-- debug only
-		u_addr => u_addr
+		u_addr => dbg_upc
 	);
 
 -- used in EXF instruction
 af_xor_bf <= flag_a xor flag_b;
 
 -- hint to clock logic outside (disable single step when in trace code, or when microcode does it)
---singlestep_disable <= '1' when ((unsigned(u_addr) > 9) and (unsigned(u_addr) < 64)) else ss_disable;
 singlestep_disable <= ss_disable;
 
 -- enables for each digit or bit in the SAM are at "intersection" of digit and register enabled line --
 -- when the "master write" from microcode is 1. Note these are all active 0 																		  --
-enable_a  <= e_dig(10 downto 0) when (update_sam = '1' and e_reg(4) = '0') else "11111111111";
-enable_b  <= e_dig(10 downto 0) when (update_sam = '1' and e_reg(3) = '0') else "11111111111";
-enable_c  <= e_dig(10 downto 0) when (update_sam = '1' and e_reg(2) = '0') else "11111111111";
-enable_af <= e_dig(10 downto 0) when (update_sam = '1' and e_reg(1) = '0') else "11111111111";
-enable_bf <= e_dig(10 downto 0) when (update_sam = '1' and e_reg(0) = '0') else "11111111111";
+enable_a  <= e_dig(10 downto 0) when ((update_sam and (not e_reg(4))) = '1') else "11111111111";
+enable_b  <= e_dig(10 downto 0) when ((update_sam and (not e_reg(3))) = '1') else "11111111111";
+enable_c  <= e_dig(10 downto 0) when ((update_sam and (not e_reg(2))) = '1') else "11111111111";
+enable_af <= e_dig(10 downto 0) when ((update_sam and (not e_reg(1))) = '1') else "11111111111";
+enable_bf <= e_dig(10 downto 0) when ((update_sam and (not e_reg(0))) = '1') else "11111111111";
 
 -- generate SAM (regs a, b, c), and a and b flags, plus (k)onstants and masks ---
 sam_generate: for i in 0 to 10 generate
@@ -750,11 +721,7 @@ with tu_char(3 downto 0) select
 				instruction(11 downto 8)			when t_instr2, -- note that instruction(11) is breakpoint flag!
 				pc(3 downto 0) 						when t_pc0,
 				pc(7 downto 4) 						when t_pc1,
-				"000" & pc(8) 							when t_pc2,
-				dbg_in(3 downto 0)					when t_dbgin0,
-				dbg_in(7 downto 4)					when t_dbgin1,
-				dbg_in(11 downto 8)					when t_dbgin2,
-				dbg_in(15 downto 12)					when t_dbgin3;
+				"000" & pc(8) 							when t_pc2;
 	
 -- if input >127 then it is from mux, otherwise transmit directly
 setTrace: process(clk_cpu, tu_char, hex)

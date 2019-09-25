@@ -42,25 +42,27 @@ end microcode;
 architecture Behavioral of microcode is
 
 -- some frequently used microcode destinations  --
-constant RESTART: integer := 0;
-constant CLEAR: integer := 1;
-constant FORK: integer := 2;
-constant NEXTI: integer := 3;
+constant RESTART:		integer := 0;
+constant CLEAR:		integer := 1;
+constant FORK:			integer := 2;
+constant NEXTI:		integer := 3;
 constant CONTINUECS: integer := 4;
 constant CONTINUECC: integer := 5;
-constant JUMPCS: integer := 6;
-constant JUMPCC: integer := 7;
-constant JUMP: integer := 8;
-constant CONTINUE: integer := 9;
-constant TRACE: integer := 10;
-constant CLEARTXD: integer := 63; --123
-constant COPYS: integer := 67;
-constant MUL10: integer := 73;
-constant DIV10: integer := 76;
-constant ADCBCD: integer := 82;
-constant SBCBCD: integer := 109;
-constant ADCHEX: integer := 112;
-constant SBCHEX: integer := 115;
+constant JUMPCS:		integer := 6;
+constant JUMPCC:		integer := 7;
+constant JUMP:			integer := 8;
+constant CONTINUE:	integer := 9;
+constant TRACE:		integer := 10;
+constant CLEARTXD:	integer := 63; --123
+constant ZFX:			integer := 64;
+constant COPYS:		integer := 67;
+constant MUL10:		integer := 73;
+constant DIV10:		integer := 76;
+constant ADCBCD:		integer := 82;
+constant SFX:			integer := 105;
+constant SBCBCD:		integer := 109;
+constant ADCHEX:		integer := 112;
+constant SBCHEX:		integer := 115;
 -- Sinclair instruction implementations ----------
 constant ACBB: integer := 129; -- B <= C + B
 constant SCBA: integer := 130; -- A <= C - B
@@ -645,7 +647,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_goto(upc_return),			-- return to caller
 ----- END TRACER ROUTINE -------------
 
-		64 => -- ZFB, ZFA
+		ZFX => -- ZFB, ZFA
 			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		65 =>
@@ -824,7 +826,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_cond(cf_zero) or
 			uc_goto(uc_label(CONTINUE)),
 			
-		105 => -- SFB, SFA
+		SFX => -- SFB, SFA
 			uc_ss(ss_off) or
 			uc_if(cond_e11, upc_next, uc_label(CONTINUE)),
 		106 =>
@@ -984,12 +986,12 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		211 => -- SFB
 			uc_e(e_rol) or
 			uc_dst(dst_bf) or
-			uc_goto(uc_label(105)),  
+			uc_goto(uc_label(SFX)),  
 
 		212 => -- SFA
 			uc_e(e_rol) or
 			uc_dst(dst_af) or
-			uc_goto(uc_label(105)),  
+			uc_goto(uc_label(SFX)),  
 
 		213 => -- SYNC(H)
 			uc_cond(cf_zero) or
@@ -1001,12 +1003,12 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 		215 => -- ZFB
 			uc_e(e_rol) or
 			uc_dst(dst_bf) or
-			uc_goto(uc_label(64)),
+			uc_goto(uc_label(ZFX)),
 
 		216 => -- ZFA
 			uc_e(e_rol) or
 			uc_dst(dst_af) or
-			uc_goto(uc_label(64)),
+			uc_goto(uc_label(ZFX)),
 
 		217 => -- TFB
 			uc_e(e_rol) or
@@ -1209,6 +1211,7 @@ impure function init_microcode(dump_file_name: in string) return rom256x52 is
 			uc_src(src_ak) or
 			uc_dst(dst_a) or
 			uc_goto(uc_label(118)),  
+			--uc_goto(uc_label(121)),  
 
 		251 => -- AAKAH / SCBA
 			uc_e(e_rol) or

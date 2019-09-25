@@ -11,6 +11,7 @@ package tms0800_package is
 
 subtype t_7seg is std_logic_vector(7 downto 0);
 type bytemask is array (0 to 15) of std_logic_vector(7 downto 0);
+type anodepattern is array (0 to 15) of std_logic_vector(7 downto 0);
 
 constant pattern0: t_7seg := "00111111";   --0
 constant pattern1: t_7seg  := "00000110";   --1
@@ -34,22 +35,60 @@ constant char_LF: std_logic_vector(7 downto 0) := X"0A";
 constant tab: character := character'val(9);
 
 constant decode4to8: bytemask :=(
-"00000000", -- 0 disabled
-"00000000",
-"00000000",
-"00000000",
-"00000000",
-"00000000",
-"00000000",
-"00000000",	-- 7 disabled
-"00000001", -- 0 enabled
-"00000010",
-"00000100",
-"00001000",
-"00010000",
-"00100000",
-"01000000",
-"10000000"	-- 7 enabled
+		"00000000", -- 0 disabled
+		"00000000",
+		"00000000",
+		"00000000",
+		"00000000",
+		"00000000",
+		"00000000",
+		"00000000",	-- 7 disabled
+		"00000001", -- 0 enabled
+		"00000010",
+		"00000100",
+		"00001000",
+		"00010000",
+		"00100000",
+		"01000000",
+		"10000000"	-- 7 enabled
+);
+
+constant hexfont: anodepattern :=(
+					pattern0,   --0
+					pattern1,   --1
+					pattern2,   --2
+					pattern3,   --3
+					pattern4,   --4
+					pattern5,   --5
+					pattern6,   --6
+					pattern7,   --7
+					pattern8,   --8
+					pattern9,   --9
+					"01110111",   --A
+					"01111100",   --b
+					"00111001",   --C
+					"01011110",   --d
+					"01111001",   --E
+					"01110001"    --F
+);
+
+constant bcdfont: anodepattern :=(
+					pattern0,   --0
+					pattern1,   --1
+					pattern2,   --2
+					pattern3,   --3
+					pattern4,   --4
+					pattern5,   --5
+					pattern6,   --6
+					pattern7,   --7
+					pattern8,   --8
+					pattern9,   --9
+					"01111001",   -- A (E for "Error")
+					"01010000",   -- B (r for "Error")
+					"01011100",   -- C (o for "Error")
+					"00001000",   --(single segment, should never appear)
+					pattern_minus,   --(show minus sign)
+					pattern_blank    --blanking
 );
 
 -- selections for tracer unit
@@ -65,10 +104,10 @@ constant t_instr2 : 	std_logic_vector(3 downto 0) := X"8";
 constant t_pc0: 		std_logic_vector(3 downto 0) := X"9";
 constant t_pc1: 		std_logic_vector(3 downto 0) := X"A";
 constant t_pc2: 		std_logic_vector(3 downto 0) := X"B";
-constant t_dbgin0: 	std_logic_vector(3 downto 0) := X"C";
-constant t_dbgin1: 	std_logic_vector(3 downto 0) := X"D";
-constant t_dbgin2: 	std_logic_vector(3 downto 0) := X"E";
-constant t_dbgin3: 	std_logic_vector(3 downto 0) := X"F";
+--constant t_dbgin0: 	std_logic_vector(3 downto 0) := X"C";
+--constant t_dbgin1: 	std_logic_vector(3 downto 0) := X"D";
+--constant t_dbgin2: 	std_logic_vector(3 downto 0) := X"E";
+--constant t_dbgin3: 	std_logic_vector(3 downto 0) := X"F";
 
 -- special microcode "goto" codes (all others will be jump to that location)
 constant upc_next:   std_logic_vector(7 downto 0) := X"00"; -- means we can't jump to location 0!
