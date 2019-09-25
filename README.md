@@ -1,25 +1,30 @@
 # Sys0800
-VHDL implementation of vintage TMS0800 calculator chip
+VHDL implementation of TI Datamath and Sinclair Scientific vintage calculators
+
+Both of these used a variation of the TMS0800 chip, with different program and instruction mask. All of that has been replicated. (Find more info here: https://hackaday.io/project/167457-tms0800-fpga-implementation-in-vhdl
 
 This is the reverse engineering of the US patent #3934233 which can be found here:
 https://patents.google.com/patent/US3934233
 
 The project has been inspired by the cool JScript / HTML simulation by Ken Shirriff: http://files.righto.com/calculator/TI_calculator_simulator.html
 
-The implementation is not replicating 100% the internals of the original chip, as random MOS logic does not translate too well into FPGA RTL. Instead, a classic micro-coded approach was used, with a 256 * 48 control store. The upper part of this store (0x80 - 0xFF) maps directly into TMS0800 instructions (e.g. entry point for ZFA (0x58X) is at 0xD8), and the lower part is used to implement the instructions. 
+The implementation is not replicating 100% the internals of the original chip, as random MOS logic does not translate too well into FPGA RTL. Instead, a classic micro-coded approach was used, with a 256 * 52 control store. The upper part of this store (0x80 - 0xFF) maps directly into TMS0800 instructions (e.g. entry point for ZFA (0x58X) is at 0xD8), and the lower part is used to implement the instructions. Some microinstructions are different for TI and Sinclair, for those the "sinclair" pin is examined as a condition to microinstruction branch, leading to different implmentations.
+
+Both program stores are present at the same time (512 * 12 bit words, only 320 are used), the instruction pointer drives both, but based on "sinclair" pin, the correct one is multiplexed into instruction decoding and masking logic. There are also 2 mask tables, one for TI one for Sinclair. The calculator program(s) can be downloaded and "compiled" to be consumable by VHDL build time running the AsmGenerator.exe utility.
 
 The "TMS0800" is wrapped into additional logic to allow it to be used as a calculator - for that the I/O devices on Mercury base-board need to be adapted to the calculator core. This includes:
 
-- 1 serial tracer on PMOD running at 38400 baud, 8N1
-- 1 parallel tracer on VGA (therefore a simple text-based VGA controller and 4k of video character RAM + chargen ROM are present too)
-- 1 PmodKYPD keyboard on PMOD
-- 1 (partial) debug keyboard
+- debug tracer on VGA (therefore a simple text-based VGA controller and 4k of video character RAM + chargen ROM are present too)
+- PmodKYPD keyboard on PMOD
+- 7 seg LED driver
 
 Some of these are mutually exclusive as they use single PMOD. Setting all switches to off and pressing button 3 starts calculator with:
 
-- PmodKYPD on PMOD
-- 38.4 kHz (similar frequency to original)
-- VGA and serial tracers inactive (former can be activated by turning switch 0 on)
+- TI mode
+- 12.5MHz CPU frequency
+- debug disabled, single step off
+- VGA tracing disabled
+- 7 seg showing calculator input/results
 
 Either tracer circuit allows observation of internal state after each instruction. This is also driven by microcode routine, locations 0x0A to 0x3F. Here is the startup sequence:
 
