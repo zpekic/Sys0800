@@ -256,8 +256,8 @@ begin
 				return "if(dk) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_3 =>
 				return "if(c3) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
-			when cond_digit0 =>
-				return "if(digit0) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
+			when cond_digit1 =>
+				return "if(digit1) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_breakpoint =>
 				return "if(breakpoint) then " & decode_then_or_else(if_then) & " else " & decode_then_or_else(if_else) & ";";
 			when cond_true =>

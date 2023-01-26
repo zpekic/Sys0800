@@ -1,11 +1,11 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: zpekic@hotmail.com
 -- 
 -- Create Date:    23:55:21 03/10/2019 
 -- Design Name: 
 -- Module Name:    tms0800 - Behavioral 
--- Project Name: 
+-- Project Name: 	https://hackaday.io/project/167457-tms0800-fpga-implementation-in-vhdl
 -- Target Devices: 
 -- Tool versions: 
 -- Description: 
@@ -56,20 +56,25 @@ end tms0800;
 
 architecture Behavioral of tms0800 is
 
-component displayunit is
+component display_ti is
     Port ( clk : in  STD_LOGIC;
 			  reset: in STD_LOGIC;
-			  sinclair: in STD_LOGIC;
            reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
-           --debug : in  STD_LOGIC_VECTOR (31 downto 0);
-           dp_pos : in  STD_LOGIC_VECTOR(3 downto 0);
-           --show_debug : in  STD_LOGIC;
 			  show_error: in STD_LOGIC;
-           nDigit : out  STD_LOGIC_VECTOR (8 downto 0);
-           segment : out  STD_LOGIC_VECTOR (7 downto 0);
-			  digit0: out STD_LOGIC;
-			  digit10: out STD_LOGIC
-			  --dbg_select: in STD_LOGIC_VECTOR(2 downto 0)
+           nDPoint : in STD_LOGIC_VECTOR (9 downto 0);
+           nDigit : in  STD_LOGIC_VECTOR (9 downto 0);
+           segment : out  STD_LOGIC_VECTOR (7 downto 0)
+			);
+end component;
+
+component display_sinclair is
+    Port ( clk : in  STD_LOGIC;
+			  reset: in STD_LOGIC;
+           reg_a : in  STD_LOGIC_VECTOR (35 downto 0);
+			  show_error: in STD_LOGIC;
+           nDPoint : in STD_LOGIC_VECTOR (9 downto 0);
+           nDigit : in  STD_LOGIC_VECTOR (9 downto 0);
+           segment : out  STD_LOGIC_VECTOR (7 downto 0)
 			);
 end component;
 
@@ -130,22 +135,34 @@ component bcdalu is
            cout : out  STD_LOGIC);
 end component;
 
-component mux11x4 is
-    Port ( e : in  STD_LOGIC_VECTOR (10 downto 0);
+component mux16x4 is
+    Port ( s : in  STD_LOGIC_VECTOR (3 downto 0);
            x : in  STD_LOGIC_VECTOR (43 downto 0);
            y : out  STD_LOGIC_VECTOR (3 downto 0));
 end component;
 
---component freqmux is
---    Port ( reset : in  STD_LOGIC;
---           f0in : in  STD_LOGIC;
---           f1in : in  STD_LOGIC;
---           sel : in  STD_LOGIC;
---           fout : out  STD_LOGIC);
---end component;
+type decodepattern is array (0 to 15) of std_logic_vector(9 downto 0);
+constant decode: decodepattern := (
+					"1111111101",
+					"1111111011",
+					"1111110111",
+					"1111101111",
+					"1111011111",
+					"1110111111",
+					"1101111111",
+					"1011111111",
+					"0111111111",
+					"1111111111",
+					"1111111111",
+					"1111111111",
+					"1111111111",
+					"1111111111",
+					"1111111111",
+					"1111111111"
+);
 
-type hex2ascii is array (0 to 15) of std_logic_vector(7 downto 0);
-constant h2a: hex2ascii :=(
+type mem16x8 is array (0 to 15) of std_logic_vector(7 downto 0);
+constant h2a: mem16x8 :=(
 	std_logic_vector(to_unsigned(character'pos('0'), 8)),
 	std_logic_vector(to_unsigned(character'pos('1'), 8)),
 	std_logic_vector(to_unsigned(character'pos('2'), 8)),
@@ -162,6 +179,25 @@ constant h2a: hex2ascii :=(
 	std_logic_vector(to_unsigned(character'pos('D'), 8)),
 	std_logic_vector(to_unsigned(character'pos('E'), 8)),
 	std_logic_vector(to_unsigned(character'pos('F'), 8))
+	);
+	
+constant selring: mem16x8 :=(
+	x"1B",	-- 0
+	x"20",	
+	x"31",
+	x"42",
+	x"53",
+	x"64",
+	x"75",
+	x"86",
+	x"97",
+	x"A8",
+	x"B9",
+	x"0A",	-- 11
+	x"0B",	-- illegal
+	x"0B",	-- illegal
+	x"0B",	-- illegal
+	x"0B"		-- illegal
 	);
 	
 type masktable is array (0 to 31) of std_logic_vector(43 downto 0);
@@ -225,7 +261,7 @@ signal af_xor_bf: std_logic_vector(10 downto 0);
 signal a_selected, b_selected, c_selected, k_selected: std_logic_vector(3 downto 0);
 signal af_selected, bf_selected: std_logic;
 signal mask_selected: std_logic;
-signal digit0, digit10: std_logic;
+signal digit1, digit10: std_logic;
 signal hex: std_logic_vector(3 downto 0);
 
 -- instruction being executed
@@ -236,10 +272,14 @@ alias i_jumpaddress: std_logic_vector(8 downto 0) is instruction(8 downto 0);
 alias i_mask: std_logic_vector(3 downto 0) is instruction(3 downto 0);
 
 -- Other internal registers --------------------
-signal pc: std_logic_vector(8 downto 0); -- 9 bit program counter
-signal e_dig: std_logic_vector(11 downto 0); -- 12 bit enable register (usually only 1 hot bit to enable digit position registers)
-signal e_reg: std_logic_vector(4 downto 0); -- 5 bit enable register for A, B, C, AF, BF
-signal alu_sel: std_logic_vector(2 downto 0); -- make ALU selection "sticky" until changed
+signal pc: std_logic_vector(8 downto 0);			-- 9 bit program counter
+signal e_dig: std_logic_vector(11 downto 0); 	-- 12 bit enable register (usually only 1 hot bit to enable digit position registers)
+signal e_sel: std_logic_vector(3 downto 0);		--	points to 1 hot bit in e_dig
+signal e_selring: std_logic_vector(7 downto 0);	-- next value of e_sel from lookup table
+alias  e_sel_left: std_logic_vector(3 downto 0) is e_selring(7 downto 4);	-- <<
+alias  e_sel_right: std_logic_vector(3 downto 0) is e_selring(3 downto 0);	-- >>
+signal e_reg: std_logic_vector(4 downto 0);		-- 5 bit enable register for A, B, C, AF, BF
+signal alu_sel: std_logic_vector(2 downto 0);	-- make ALU selection "sticky" until changed
 signal enable_a: std_logic_vector(10 downto 0);
 signal enable_b: std_logic_vector(10 downto 0);
 signal enable_c: std_logic_vector(10 downto 0);
@@ -271,6 +311,8 @@ alias tu_char:			std_logic_vector(7 downto 0) is u_code(7 downto 0);
 
 -- keyboard / display
 signal keystrobe, keypressed: std_logic;
+signal segment_sinclair, segment_ti: std_logic_vector(7 downto 0);
+signal scanentry: std_logic_vector(9 downto 0);
 
 -- clocks and sync
 signal clk_scan: std_logic;
@@ -279,19 +321,30 @@ begin
 
 dbg_mpc <= pc;	-- make PC available at debug output port
 
-du: displayunit port map 
+-- display units differ for TI and Sinclair, but are driven by same scanentry ring counter
+du_ti: display_ti port map 
 (
 		clk => clk_scan,
 		reset => reset,
-		sinclair => sinclair,
 		reg_a => reg_a(43 downto 8),
-		dp_pos => reg_a(3 downto 0),
-		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero, Datamath only)
-		nDigit => nDigit,
-		segment => segment,
-		digit0 => digit0,
-		digit10 => digit10
+		show_error => flag_b(5), -- when set, this flag indicates error (overflow or divide by zero)
+		nDPoint => decode(to_integer(unsigned(reg_a(3 downto 0)))),
+		nDigit => scanentry,
+		segment => segment_ti
 );
+
+du_sinclair: display_sinclair port map 
+(
+		clk => clk_scan,
+		reset => reset,
+		reg_a => reg_a(43 downto 8),
+		show_error => '0',			-- error is not shown in Sinclair mode
+		nDPoint => "1011111111",	-- decimal point always after 1st digit
+		nDigit => scanentry,
+		segment => segment_sinclair
+);
+
+segment <= segment_sinclair when (sinclair = '1') else segment_ti;
 		
 -- Program counter and instruction -------------------------------------------------------
 update_pc: process(clk_cpu, reset, pc_verb, instruction)
@@ -375,6 +428,23 @@ end process;
 -- display / keyboard sync ----------------------------
 clk_scan <= '0' when (sync_verb = pulse) else '1';
 			 
+-- drive scan - note that even in debug output mode, nDigit lines drive keyboard correctly
+nDigit 	<= scanentry(9 downto 1);
+digit1	<= not scanentry(9);
+digit10 	<= not scanentry(0);
+
+drive_scan: process(clk_scan, reset)
+begin
+	if (reset = '1') then
+		scanentry <= "0111111111";
+	else
+		if (rising_edge(clk_scan)) then
+			scanentry <= scanentry(0) & scanentry(9 downto 1);
+		end if;
+	end if;
+end process;
+
+-- microcontrol unit
 cu: controlunit port map 
 	( 
 		clk => clk_cpu,
@@ -393,7 +463,7 @@ cu: controlunit port map
       condition(cond_sinclair) => sinclair,						
       condition(cond_dk) => '1',						-- as if DisplayKey is stuck == display always on
       condition(cond_3) => '0',
-      condition(cond_digit0) => digit0,
+      condition(cond_digit1) => digit1,
       condition(cond_breakpoint) => breakpoint_ack,
       condition(cond_true) => '1', -- hard-code "true" for condition 0
 		u_code => u_code,
@@ -563,37 +633,42 @@ begin
 end generate;
 
 -- Multiplexors to bring A, B, C, K to ALU and trace unit ---
-amux: mux11x4 port map 
+amux: mux16x4 port map 
 	(
-		e => e_dig(10 downto 0),
+--		e => e_dig(10 downto 0),
+		s => e_sel,
 		x => reg_a,
 		y => a_selected
 	);
 
-bmux: mux11x4 port map 
+bmux: mux16x4 port map 
 	(
-		e => e_dig(10 downto 0),
+--		e => e_dig(10 downto 0),
+		s => e_sel,
 		x => reg_b,
 		y => b_selected
 	);
 
-cmux: mux11x4 port map 
+cmux: mux16x4 port map 
 	(
-		e => e_dig(10 downto 0),
+--		e => e_dig(10 downto 0),
+		s => e_sel,
 		x => reg_c,
 		y => c_selected
 	);
 
-kmux: mux11x4 port map 
+kmux: mux16x4 port map 
 	(
-		e => e_dig(10 downto 0),
+--		e => e_dig(10 downto 0),
+		s => e_sel,
 		x => k,
 		y => k_selected
 	);
 
-fmux: mux11x4 port map 
+fmux: mux16x4 port map 
 	(
-		e => e_dig(10 downto 0),
+--		e => e_dig(10 downto 0),
+		s => e_sel,
 		x(43 downto 40) => '0' & mask(10) & flag_b(10) & flag_a(10),
 		x(39 downto 36) => '0' & mask(9) & flag_b(9) & flag_a(9),
 		x(35 downto 32) => '0' & mask(8) & flag_b(8) & flag_a(8),
@@ -690,6 +765,9 @@ begin
 	end if;
 end process;
 
+-- Next value from lookup table 
+e_selring <= selring(to_integer(unsigned(e_sel)));
+
 -- E (enable) register - selects 1 out of 10 digits 9 .. 0 ------------------
 update_e: process(clk_cpu, e_verb)
 begin
@@ -697,10 +775,13 @@ begin
 		case e_verb is
 			when e_init =>
 				e_dig <= "011111111111"; -- note that e(11) does not enable any register
+				e_sel <= x"B";	-- 11 (beyond left-most existing digit)
 			when e_rol =>
 				e_dig <= e_dig(10 downto 0) & e_dig(11); -- rotate left (11 << 0), used when calculating
+				e_sel <= e_sel_left;
 			when e_ror =>
 				e_dig <= e_dig(0) & e_dig(11 downto 1); -- rotate right (11 >> 0), used for driving tracer
+				e_sel <= e_sel_right;
 			when others =>
 				e_dig <= e_dig;
 		end case;
